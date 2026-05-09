@@ -1,0 +1,288 @@
+{
+    "metadata": {
+        "pipeline_id": "8041f7ff",
+        "generated_at": "2026-05-09T06:09:44+00:00"
+    },
+    "params": {
+        "1": {
+            "number": 1,
+            "eff_hits": 92.16857205711435,
+            "exp_eff_hits": 139.4450309528479,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "2": {
+            "number": 2,
+            "eff_hits": 90.4552091547607,
+            "exp_eff_hits": 137.85074355239115,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "3": {
+            "number": 3,
+            "eff_hits": 319.25667971363225,
+            "exp_eff_hits": 135.26121258815292,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "4": {
+            "number": 4,
+            "eff_hits": 109.17175917130602,
+            "exp_eff_hits": 131.76870195952057,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "5": {
+            "number": 5,
+            "eff_hits": 88.22283104725187,
+            "exp_eff_hits": 127.48669963376585,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "6": {
+            "number": 6,
+            "eff_hits": 145.10066554386816,
+            "exp_eff_hits": 122.53925416375729,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "7": {
+            "number": 7,
+            "eff_hits": 207.41182829045277,
+            "exp_eff_hits": 117.05215004808971,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "8": {
+            "number": 8,
+            "eff_hits": 91.1970793528698,
+            "exp_eff_hits": 111.14688987818838,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "9": {
+            "number": 9,
+            "eff_hits": 33.378653913331725,
+            "exp_eff_hits": 104.93739351767499,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "10": {
+            "number": 10,
+            "eff_hits": 121.83198227630533,
+            "exp_eff_hits": 98.52866607068256,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "11": {
+            "number": 11,
+            "eff_hits": 57.87855591839196,
+            "exp_eff_hits": 92.01652528951466,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "12": {
+            "number": 12,
+            "eff_hits": 34.930094265002865,
+            "exp_eff_hits": 85.48767395526191,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "13": {
+            "number": 13,
+            "eff_hits": 54.9378908584683,
+            "exp_eff_hits": 79.01972973845336,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "14": {
+            "number": 14,
+            "eff_hits": 123.23641188081919,
+            "exp_eff_hits": 72.68111041707922,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "15": {
+            "number": 15,
+            "eff_hits": 33.82749977105318,
+            "exp_eff_hits": 66.53084142354716,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "16": {
+            "number": 16,
+            "eff_hits": 55.29952436498076,
+            "exp_eff_hits": 60.618409756159295,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "17": {
+            "number": 17,
+            "eff_hits": 71.2149996407928,
+            "exp_eff_hits": 54.98377287071503,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "18": {
+            "number": 18,
+            "eff_hits": 53.25709438525672,
+            "exp_eff_hits": 49.65758448459283,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "19": {
+            "number": 19,
+            "eff_hits": 23.886738159824564,
+            "exp_eff_hits": 44.661649653135925,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "20": {
+            "number": 20,
+            "eff_hits": 50.05951549729865,
+            "exp_eff_hits": 40.00958334247807,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "21": {
+            "number": 21,
+            "eff_hits": 61.56315337928333,
+            "exp_eff_hits": 35.70762427623879,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "22": {
+            "number": 22,
+            "eff_hits": 21.55421385871799,
+            "exp_eff_hits": 31.75554762905716,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "23": {
+            "number": 23,
+            "eff_hits": 22.13224757483972,
+            "exp_eff_hits": 28.147622279563,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "24": {
+            "number": 24,
+            "eff_hits": 46.846675322154894,
+            "exp_eff_hits": 24.873566517655707,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "25": {
+            "number": 25,
+            "eff_hits": 23.076484343863157,
+            "exp_eff_hits": 21.919466724980037,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "26": {
+            "number": 26,
+            "eff_hits": 19.7142728166572,
+            "exp_eff_hits": 19.268634132812572,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "27": {
+            "number": 27,
+            "eff_hits": 25.13413933327646,
+            "exp_eff_hits": 16.902383928114354,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "28": {
+            "number": 28,
+            "eff_hits": 33.55041930440361,
+            "exp_eff_hits": 14.800728203616565,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "29": {
+            "number": 29,
+            "eff_hits": 16.592231100196166,
+            "exp_eff_hits": 12.942979562305311,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "30": {
+            "number": 30,
+            "eff_hits": 12.161238869574024,
+            "exp_eff_hits": 11.30826590478137,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "31": {
+            "number": 31,
+            "eff_hits": 27.15060077072876,
+            "exp_eff_hits": 9.875959450495314,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "32": {
+            "number": 32,
+            "eff_hits": 10.78513171318183,
+            "exp_eff_hits": 8.62602473893553,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "33": {
+            "number": 33,
+            "eff_hits": 7.137465907298214,
+            "exp_eff_hits": 7.539291505000844,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "34": {
+            "number": 34,
+            "eff_hits": 10.84066326395011,
+            "exp_eff_hits": 6.597659106902734,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "35": {
+            "number": 35,
+            "eff_hits": 15.991898513318468,
+            "exp_eff_hits": 5.7842397060816255,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "36": {
+            "number": 36,
+            "eff_hits": 1.3045082435259825,
+            "exp_eff_hits": 5.083447702309438,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "37": {
+            "number": 37,
+            "eff_hits": 8.20784173439208,
+            "exp_eff_hits": 4.481043029555012,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "38": {
+            "number": 38,
+            "eff_hits": 10.167021830047878,
+            "exp_eff_hits": 3.9641358265055056,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "39": {
+            "number": 39,
+            "eff_hits": 0.9287584378851412,
+            "exp_eff_hits": 3.5211597207282495,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        },
+        "40": {
+            "number": 40,
+            "eff_hits": 3.6409705242113857,
+            "exp_eff_hits": 3.1418205273636532,
+            "eff_games": 2256.871694900674,
+            "trained_through": 2020
+        }
+    }
+}

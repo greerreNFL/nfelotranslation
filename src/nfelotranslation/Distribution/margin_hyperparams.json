@@ -1,0 +1,10 @@
+{
+    "metadata": {
+        "pipeline_id": "7a8d228a",
+        "generated_at": "2026-04-24T07:12:25+00:00"
+    },
+    "params": {
+        "beta": 1.35,
+        "tie_prob": 0.002
+    }
+}

@@ -1,0 +1,49 @@
+{
+    "model_name": "recalibrator",
+    "data_through": 2025,
+    "checks": {
+        "slope_positive": {
+            "value": 1.12393175327979,
+            "threshold": 1.05,
+            "passed": true,
+            "detail": "slope=1.1239; market must hedge toward 50% (historical mean ~1.16)"
+        },
+        "insample_log_loss_improvement": {
+            "value": 0.00037417632957104097,
+            "threshold": 0.0,
+            "passed": true,
+            "detail": "0.609460 -> 0.609086"
+        }
+    },
+    "metrics": {
+        "insample_log_loss_improvement": {
+            "value": 0.00037417632957104097,
+            "detail": ""
+        },
+        "insample_brier_improvement": {
+            "value": 0.00012190009272708413,
+            "detail": ""
+        },
+        "loso_oos_log_loss_improvement": {
+            "value": -6.21502641872107e-05,
+            "detail": "0.609460 -> 0.609522"
+        },
+        "loso_oos_brier_improvement": {
+            "value": -6.516556191143996e-05,
+            "detail": ""
+        },
+        "slope_trend": {
+            "value": 0.0031698230200366993,
+            "detail": "+0.00317/yr (p=0.795)"
+        },
+        "intercept_trend": {
+            "value": 0.00738229067006715,
+            "detail": "+0.00738/yr (p=0.495)"
+        },
+        "slope_cv_pct": {
+            "value": 25.3034679687921,
+            "detail": "mean=1.1637 std=0.2945"
+        }
+    },
+    "tables": {}
+}

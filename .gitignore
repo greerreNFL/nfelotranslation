@@ -1,0 +1,24 @@
+## standard ##
+.DS_Store
+.env
+.venv/
+venv/
+__pycache__/
+
+## dist ##
+*.egg-info/
+dist/
+build/
+.eggs/
+
+## tests ##
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+## ai ##
+.claude/
+
+## scratch ##
+.local/

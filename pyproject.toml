@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nfelotranslation"
+description = "NFL win probability to margin distribution translation (spread, cover, push, EV)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{name = "greerrenfl"}]
+dynamic = ["version"]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.10",
+    "pandas>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/greerrenfl/nfelotranslation"
+Author = "https://github.com/greerrenfl"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "build>=1.0",
+    "twine>=4.0",
+    "nfelodcm",
+]
+training = [
+    "nfelodcm",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nfelotranslation = ["**/*.json"]
+
+[tool.setuptools.dynamic]
+version = { attr = "nfelotranslation.__version__" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]

@@ -1,0 +1,104 @@
+{
+    "model_name": "margin_distribution",
+    "data_through": 2025,
+    "checks": {
+        "oos_sae_pct": {
+            "value": 10.775049951274198,
+            "threshold": 15.0,
+            "passed": true,
+            "detail": "SAE=470 games (10.8%) across 4,363 OOS games"
+        },
+        "tail_bias_pct": {
+            "value": 5.117827821191918,
+            "threshold": 10.0,
+            "passed": true,
+            "detail": "tail (|m|>=17): pred=1055 act=1112 (-5.1%)"
+        },
+        "close_bias_pct": {
+            "value": 1.902157303543433,
+            "threshold": 5.0,
+            "passed": true,
+            "detail": "close (1-6): pred=1672 act=1704 (-1.9%)"
+        }
+    },
+    "metrics": {
+        "oos_sae_total": {
+            "value": 470.11542937409325,
+            "detail": "470 games (10.8%)"
+        },
+        "oos_sae_pct": {
+            "value": 10.775049951274198,
+            "detail": "10.8% of 4,363 OOS games",
+            "per_season": {
+                "2010": 43.404155029887846,
+                "2011": 42.14520723274801,
+                "2012": 41.63968951342664,
+                "2013": 40.948767829269215,
+                "2014": 40.87406467962801,
+                "2015": 33.43354322173088,
+                "2016": 41.986186283665106,
+                "2017": 39.44183890180935,
+                "2018": 47.035649185898436,
+                "2019": 38.81653821634288,
+                "2020": 46.46372206452076,
+                "2021": 42.949697543005584,
+                "2022": 32.89763649955919,
+                "2023": 39.25989084884827,
+                "2024": 46.023089663947864,
+                "2025": 38.81895991976772
+            }
+        },
+        "oos_n_games": {
+            "value": 4363.0,
+            "detail": "4,363 games (seasons 2010+)"
+        },
+        "close_region_bias_pct": {
+            "value": -1.902157303543433,
+            "detail": "Close (1-6): pred=1672 act=1704 SAE=74"
+        },
+        "mid_region_bias_pct": {
+            "value": 5.414208303387773,
+            "detail": "Mid (7-16): pred=1592 act=1510 SAE=150"
+        },
+        "tail_region_bias_pct": {
+            "value": -5.117827821191918,
+            "detail": "Tail (17-40): pred=1055 act=1112 SAE=155"
+        },
+        "key_3_ratio": {
+            "value": 1.0078502329188714,
+            "detail": "+-3: pred=642 act=637 resid=+5"
+        },
+        "key_7_ratio": {
+            "value": 1.0995587065178074,
+            "detail": "+-7: pred=418 act=380 resid=+38"
+        },
+        "key_10_ratio": {
+            "value": 1.1509990067017026,
+            "detail": "+-10: pred=254 act=221 resid=+33"
+        },
+        "key_14_ratio": {
+            "value": 1.0047018814175928,
+            "detail": "+-14: pred=220 act=219 resid=+1"
+        },
+        "key_17_ratio": {
+            "value": 0.9486831326420381,
+            "detail": "+-17: pred=137 act=144 resid=-7"
+        },
+        "key_21_ratio": {
+            "value": 1.1641089931334392,
+            "detail": "+-21: pred=123 act=106 resid=+17"
+        },
+        "tail_mass_ratio": {
+            "value": 0.9488217217880808,
+            "detail": "pred=1055 act=1112 (-5.1%)"
+        },
+        "sae_trend": {
+            "value": -0.057703282329766445,
+            "detail": "-0.0577%/yr (p=0.801)"
+        }
+    },
+    "tables": {
+        "Regional Breakdown": "Range                Pred   Actual      Bias    Bias%      SAE\nClose (1-6)        1671.6     1704     -32.4    -1.9%     74.1\nMid (7-16)         1591.8     1510     +81.8    +5.4%    150.0\nTail (17-40)       1055.1     1112     -56.9    -5.1%    154.8",
+        "Key Number Detail": "  k     Pred   Actual   Ratio     Resid\n  3    642.0      637   1.008      +5.0\n  7    417.8      380   1.100     +37.8\n 10    254.4      221   1.151     +33.4\n 14    220.0      219   1.005      +1.0\n 17    136.6      144   0.949      -7.4\n 21    123.4      106   1.164     +17.4"
+    }
+}

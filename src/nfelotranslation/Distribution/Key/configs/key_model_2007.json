@@ -1,0 +1,288 @@
+{
+    "metadata": {
+        "pipeline_id": "8041f7ff",
+        "generated_at": "2026-05-09T06:09:44+00:00"
+    },
+    "params": {
+        "1": {
+            "number": 1,
+            "eff_hits": 10.96784079403306,
+            "exp_eff_hits": 16.720578486493952,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "2": {
+            "number": 2,
+            "eff_hits": 10.93543723938266,
+            "exp_eff_hits": 16.538019442268016,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "3": {
+            "number": 3,
+            "eff_hits": 42.88255365442539,
+            "exp_eff_hits": 16.240077539621797,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "4": {
+            "number": 4,
+            "eff_hits": 11.8107700513962,
+            "exp_eff_hits": 15.835654441554682,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "5": {
+            "number": 5,
+            "eff_hits": 7.722111187820788,
+            "exp_eff_hits": 15.336157470586258,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "6": {
+            "number": 6,
+            "eff_hits": 17.618899561230403,
+            "exp_eff_hits": 14.75467139269659,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "7": {
+            "number": 7,
+            "eff_hits": 19.503611230635624,
+            "exp_eff_hits": 14.105146127000893,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "8": {
+            "number": 8,
+            "eff_hits": 8.378750974339367,
+            "exp_eff_hits": 13.401693394818357,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "9": {
+            "number": 9,
+            "eff_hits": 6.246755690958486,
+            "exp_eff_hits": 12.65804248872719,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "10": {
+            "number": 10,
+            "eff_hits": 18.109927430256143,
+            "exp_eff_hits": 11.887162973611753,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "11": {
+            "number": 11,
+            "eff_hits": 6.97039200220417,
+            "exp_eff_hits": 11.101031493419041,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "12": {
+            "number": 12,
+            "eff_hits": 3.8300765625105275,
+            "exp_eff_hits": 10.310505489806761,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "13": {
+            "number": 13,
+            "eff_hits": 5.690699573694431,
+            "exp_eff_hits": 9.525266643640819,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "14": {
+            "number": 14,
+            "eff_hits": 15.553768083516237,
+            "exp_eff_hits": 8.753805541886202,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "15": {
+            "number": 15,
+            "eff_hits": 7.420579243086163,
+            "exp_eff_hits": 8.003430230510455,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "16": {
+            "number": 16,
+            "eff_hits": 7.292224621936928,
+            "exp_eff_hits": 7.280290525259112,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "17": {
+            "number": 17,
+            "eff_hits": 9.169596846136491,
+            "exp_eff_hits": 6.589415410253685,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "18": {
+            "number": 18,
+            "eff_hits": 8.05339844286429,
+            "exp_eff_hits": 5.9347628676293045,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "19": {
+            "number": 19,
+            "eff_hits": 0.9441527593991114,
+            "exp_eff_hits": 5.319281394242074,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "20": {
+            "number": 20,
+            "eff_hits": 5.842216682842341,
+            "exp_eff_hits": 4.744981663576085,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "21": {
+            "number": 21,
+            "eff_hits": 4.747794776765909,
+            "exp_eff_hits": 4.2130161704911595,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "22": {
+            "number": 22,
+            "eff_hits": 3.6609544253196815,
+            "exp_eff_hits": 3.723764551916908,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "23": {
+            "number": 23,
+            "eff_hits": 1.5816416160686608,
+            "exp_eff_hits": 3.2769225060995257,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "24": {
+            "number": 24,
+            "eff_hits": 5.509697056193257,
+            "exp_eff_hits": 2.871592589989631,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "25": {
+            "number": 25,
+            "eff_hits": 3.444872366365934,
+            "exp_eff_hits": 2.5063754542525616,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "26": {
+            "number": 26,
+            "eff_hits": 0.3868461173858608,
+            "exp_eff_hits": 2.1794601923898496,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "27": {
+            "number": 27,
+            "eff_hits": 2.3352394707096216,
+            "exp_eff_hits": 1.8887124582426233,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "28": {
+            "number": 28,
+            "eff_hits": 4.289631170159471,
+            "exp_eff_hits": 1.6317589280810263,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "29": {
+            "number": 29,
+            "eff_hits": 1.249571624483543,
+            "exp_eff_hits": 1.4060666406260043,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "30": {
+            "number": 30,
+            "eff_hits": 2.214595830500646,
+            "exp_eff_hits": 1.2090158050170783,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "31": {
+            "number": 31,
+            "eff_hits": 3.184234918656647,
+            "exp_eff_hits": 1.0379648475567733,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "32": {
+            "number": 32,
+            "eff_hits": 0.15802615487787683,
+            "exp_eff_hits": 0.8903067613555266,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "33": {
+            "number": 33,
+            "eff_hits": 2.1355212982439307,
+            "exp_eff_hits": 0.7635161927941185,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "34": {
+            "number": 34,
+            "eff_hits": 1.1162932849990308,
+            "exp_eff_hits": 0.6551870987109432,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "35": {
+            "number": 35,
+            "eff_hits": 1.0999412778174884,
+            "exp_eff_hits": 0.5630611935611782,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "36": {
+            "number": 36,
+            "eff_hits": 0.08609417870938096,
+            "exp_eff_hits": 0.48504774084738356,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "37": {
+            "number": 37,
+            "eff_hits": 0.07441275044127495,
+            "exp_eff_hits": 0.41923550503476403,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "38": {
+            "number": 38,
+            "eff_hits": 1.0645905231000639,
+            "exp_eff_hits": 0.3638978590595814,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "39": {
+            "number": 39,
+            "eff_hits": 0.056353679633615865,
+            "exp_eff_hits": 0.3174921394742825,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        },
+        "40": {
+            "number": 40,
+            "eff_hits": 0.04946011843752578,
+            "exp_eff_hits": 0.278654365135977,
+            "eff_games": 267.476,
+            "trained_through": 2006
+        }
+    }
+}
