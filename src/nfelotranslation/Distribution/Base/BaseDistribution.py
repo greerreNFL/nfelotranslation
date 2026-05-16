@@ -21,8 +21,6 @@ import numpy
 from scipy.stats import gennorm as scipy_gennorm
 
 ## local ##
-## load the shipped beta default from the same config MarginDistributionModel reads,
-## so direct BaseDistribution construction tracks whatever the package ships. ##
 from .. import MARGIN_HYPERPARAMS
 _DEFAULT_BETA = float(MARGIN_HYPERPARAMS['beta'])
 
@@ -47,15 +45,15 @@ class BaseDistribution:
     On construction, spread is clamped to the nearest 0.5 grid point.
 
     Parameters:
-    * spread:   point spread (positive = favorite)
+    * spread: point spread (positive = favorite)
     * win_prob: P(margin > 0) moneyline win probability
-    * beta:     shape parameter (2.0 = Gaussian, 1.0 = Laplace, <2 = heavier tails).
-                Defaults to the shipped value in margin_hyperparams.json.
+    * beta: shape parameter (2.0 = Gaussian, 1.0 = Laplace, <2 = heavier tails).
+            Defaults to the shipped value in margin_hyperparams.json.
 
     Derived:
-    * scale:     scale parameter of the generalized normal
+    * scale: scale parameter of the generalized normal
     * loss_mass: P(margin < 0) from continuous CDF
-    * win_mass:  P(margin > 0) from continuous SF
+    * win_mass: P(margin > 0) from continuous SF
     '''
 
     spread: float

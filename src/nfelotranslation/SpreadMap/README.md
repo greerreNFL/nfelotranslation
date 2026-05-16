@@ -54,7 +54,7 @@ Per-season fits across 2006 to 2025 with both mappers refit independently per se
 
 Both slopes are stationary at conventional thresholds. The market intercept shows a small but statistically detectable upward drift of +0.025 points per year, accumulating to roughly half a point of offset at `WP = 0.50` across the 20-year window — under one half-point grid step.
 
-A single static fit is shipped for each mapper. The observed drift in the market intercept is real but small enough that season-indexed parameters are not warranted at present. This trade-off should be revisited as additional seasons accumulate or if the per-season trend strengthens.
+A single static fit is shipped for each mapper. The observed drift in the market intercept is potentially real (the market gets smarter over time!) but small enough that season-indexed parameters are not warranted at present. This trade-off should be revisited as additional seasons accumulate or if the per-season trend strengthens.
 
 ### Within-spread price signal
 
@@ -102,8 +102,7 @@ The runtime primitive. Init + map + serialize — no fitting dependencies.
 - `__init__(params)` — construct from `LinearMapParams`
 - `win_prob_to_spread(win_prob) -> Spread` — forward mapping
 - `spread_to_win_prob(spread) -> float` — inverse mapping
-- `to_file(map_type, filepath)` — JSON persistence (merges MODEL/MARKET into one file)
-- `from_file(map_type, filepath=, season=)` — load a fitted mapper. Resolution: `filepath` if given; else `season` via `find_config_path` (warn-and-fallback to the most recent prior season's config; raises `FileNotFoundError` if no config exists for or before `season`); else the package root snapshot.
+- `to_file(map_type, filepath)` / `from_file(map_type, filepath)` — JSON persistence (merges MODEL/MARKET into one file)
 - `from_params(slope, intercept)` — direct construction
 
 ### Types

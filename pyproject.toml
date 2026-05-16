@@ -7,18 +7,12 @@ name = "nfelotranslation"
 description = "NFL win probability to margin distribution translation (spread, cover, push, EV)."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
-authors = [{name = "greerrenfl"}]
 dynamic = ["version"]
 dependencies = [
     "numpy>=1.26",
     "scipy>=1.10",
     "pandas>=2.0",
 ]
-
-[project.urls]
-Homepage = "https://github.com/greerrenfl/nfelotranslation"
-Author = "https://github.com/greerrenfl"
 
 [project.optional-dependencies]
 dev = [

@@ -14,7 +14,7 @@ By tracking individual integers using a credibility-weighted model, key numbers 
 
 ### The excess is real, and generally stable
 
-Across 5,011 games (2006–2025), the excess rate at each integer is the share of games landing on `±k` minus the share predicted by the gennorm baseline at `beta = 1.35`. The CV column is the across-season `|std / mean|` over 20 seasons. Full per-integer results in `analysis/8. Key Number Excess Magnitude/`:
+Across 5,011 games (2006–2025), the excess rate at each integer is the share of games landing on `±k` minus the share predicted by the gennorm baseline at `beta = 1.35`. The CV column is the across-season `|std / mean|` over 20 seasons:
 
 | k | Excess rate | Ratio | CV (per-season) |
 |---:|---:|---:|---:|
@@ -40,11 +40,11 @@ Across 5,011 games (2006–2025), the excess rate at each integer is the share o
 | 20 | +0.0025 | 1.13 | 4.01 |
 | 21 | +0.0089 | 1.50 | 1.50 |
 
-Most of the seasonal noise observed occurs in instances where there is little to no excess, which could be read as more a structural product of dividing by a number near zero. Importantly, the numbers generally thought to be key show strong and stable signal. Where there is true movement, it occurs due to shifts across eras.
+Most of the seasonal noise observed occurs in instances where there is little to no excess, which could be read as more a structural product of dividing by a number near zero. Importantly, the numbers generally thought to be key show strong and stable signal (Analysis 8). Where there is true movement, it occurs due to shifts across eras.
 
 ### Some integers shift materially across eras
 
-Comparing pre-2015 and 2015+ subsamples (the 2015 boundary is the PAT-distance rule change), the strongest signals are stable but several integers move by more than a per-season standard deviation. Full per-integer era data in `analysis/8. Key Number Excess Magnitude/`:
+Comparing pre-2015 and 2015+ subsamples (the 2015 boundary is the PAT-distance rule change), the strongest signals are stable but several integers move by more than a per-season standard deviation:
 
 | k | Pre-2015 | 2015+ | Delta |
 |---:|---:|---:|---:|
@@ -70,11 +70,12 @@ Comparing pre-2015 and 2015+ subsamples (the 2015 boundary is the PAT-distance r
 | 20 | +0.0033 | +0.0019 | -0.0014 |
 | 21 | +0.0166 | +0.0031 | -0.0135 |
 
-In this example, it's quite clear that change to PAT-distance coincided with a large increase to the excess rate of 6. For this reason, the key model leverages exponential-decay in its updating to bias towards more recent data and adapt to changes in excess.
+In this example, it's quite clear that change to PAT-distance coincided with a large increase to the excess rate of 6 (Analysis 8). For this reason, the key model leverages exponential-decay in its updating to bias towards more recent data and adapt to changes in excess.
+
 
 ### Key numbers are proximity-dependent
 
-Per-integer weighted OLS of `excess_rate ~ |fav_spread - signed_margin|` (pooling `+k` and `-k` as occurrences of "number `k`"), with bucket sample size as the weight, shows that no integer with positive mean excess has a positive slope. Every integer with material positive excess fades with distance from the spread; every integer with material negative excess softens with distance. Full per-integer fits in `analysis/9. Key Number Distance Dependence/`:
+Key numbers also experience some proximity dependence. The further the spread is from a number, the more its expected excess shifts towards 0. This is observed by regressing observed excess at different distance bins against the distance from the spread (Analysis 9). Key numbers with positive excess have negative slope, while key numbers with negative excess have positive slope:
 
 | k | Weighted mean | Intercept | Slope per point | Weighted R² |
 |---:|---:|---:|---:|---:|
@@ -100,13 +101,13 @@ Per-integer weighted OLS of `excess_rate ~ |fav_spread - signed_margin|` (poolin
 | 20 | +0.0007 | -0.0004 | +0.00006 | 0.002 |
 | 21 | +0.0038 | +0.0133 | -0.00045 | 0.126 |
 
-The shipping `(ratio - 1) * baseline_pmf[k]` form provides distance-dependent moderation implicitly: `baseline_pmf[k]` is small at integers far from the spread, so the absolute size of the per-game correction is naturally bounded at distant integers. No explicit distance-decay parameter is fit. A universal decay relationship across integers is not visible in the data, and modeling it per-integer would overfit a feature that the multiplicative form already produces.
+This dynamic is not currently addressed by the model.
 
 ### Why track all integers, not just known key numbers
 
-Occurrence rates are generally stable, but can change over time. Prescribing key numbers and fitting them to historical data leaks data backward, and hides real key-number structure in averages (e.g. a number that went from key to non-key simply looks like a weak key). The key-nature of an outcome can only be known by observing it, so any methodology that hard-codes which integers are key is tainted and harder to trust.
+Occurrence rates are generally stable, but can change over time. Proclaiming which numbers are key based on domain knowledge actually leaks data backward (since we collectively only know which numbers are key they've been observed to be so), and is not a practical approach for updating key numbers overtime as they change.
 
-Tracking all integers uniformly lets key numbers emerge from the data, and credibility weighting keeps the model from overreacting to seasonal variance at low-frequency integers.
+Tracking all integers and allowing instances of excess occurance drive a model that "discovers" key numbers eliminates back leakage, can adapt to changes, and scales.
 
 ## The approach
 
@@ -144,13 +145,13 @@ This approach naturally handles three things that required separate mechanisms i
 
 1. **Side splitting**: Each side (+k and -k) gets excess proportional to its own baseline, so asymmetric spreads produce asymmetric excess — more on the side closer to the spread, less on the far side.
 
-2. **Distance dependence**: When the spread is far from k, the baseline PMF at that bin is small, so `(ratio - 1) * small_baseline` produces small excess. No explicit distance decay parameter is needed.
+2. **Distance dependence**: When the spread is far from k, the baseline PMF at that bin is small, so `(ratio - 1) * small_baseline` produces small excess. An explicit distance decay parameter could potentially better capture this effect, as the excess ratio itself _also_ decreases, but this adds additional complexitiy and overfitting risk.
 
 3. **No double-counting**: Total excess = `(ratio - 1) * (baseline_pos + baseline_neg)`, which correctly scales with the combined baseline rather than applying the same excess independently to both sides.
 
 ### Exponential decay
 
-Older seasons are exponentially decayed (`forgetting_rate=0.087` per season). This means the tracker naturally adapts to structural changes (like the PAT rule change) without requiring a hard reset. The effective sample size stabilizes around `n_games / forgetting_rate ~ 3,200` games, weighting recent data more heavily. The low forgetting rate reflects that season-to-season noise exceeds real drift for most integers — most integers in `analysis/8. Key Number Excess Magnitude/output_stability.csv` carry standard deviations larger than their pre-2015 vs 2015+ delta in `output_era.csv`.
+Older seasons are exponentially decayed (`forgetting_rate=0.087` per season). This means the tracker naturally adapts to structural changes (like the PAT rule change) without requiring a hard reset. The effective sample size stabilizes around `n_games / forgetting_rate ~ 3,200` games, weighting recent data more heavily. The low forgetting rate reflects that season-to-season noise exceeds real drift for most numbers - longer memory slightly improves accuracy.
 
 ### Prior initialization
 
@@ -176,11 +177,10 @@ Key sits alongside Base in the Distribution pipeline. The MarginDistributionMode
 
 Collection of 40 `NumberOutcome` trackers. State container + accessor.
 
-- `from_file(filepath=, params=, season=)` - load a per-season fit. Resolution: `filepath` if given; else `season` via `find_config_path` (warn-and-fallback to the most recent prior season's config; raises `FileNotFoundError` if no config exists for or before `season`); else the package root snapshot.
-- `from_initial(params)` - create a fresh, untrained model with all-zero trackers. Used by training-time initialization and by the OOS-warmup branch of `MarginDistributionValidator` where the no-signal fallback is the deliberate choice. Inference paths should use `from_file`.
+- `from_default(params)` - create fresh model with all-zero trackers
 - `excess_at(number, baseline_pmf)` - excess for a single number given the baseline PMF
 - `get_all_excess(baseline_pmf)` - excess for all 40 numbers (used by MarginDistributionModel)
-- `to_file(filepath)` - JSON persistence
+- `to_file(filepath)` / `from_file(filepath, params)` - JSON persistence
 
 ### `NumberOutcome`
 

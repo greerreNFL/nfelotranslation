@@ -31,7 +31,7 @@ The objective is `mean(SAE_s)` across all OOS seasons. This is intentionally NOT
 Aggregating predictions across seasons before taking the absolute value lets per-season errors cancel:
 
 * If the model over-predicts margin=3 by 10 games in 2020 and under-predicts margin=3 by 10 games in 2021, the aggregate residual at margin=3 is zero. Aggregate SAE awards this a perfect score.
-* But the customer never experiences "the average across years." They use the snapshot for the season they're predicting. The 2020 customer saw a 10-game miss; the 2021 customer saw a 10-game miss.
+* But the user never experiences "the average across years." They use the snapshot for the season they're predicting. The 2020 user saw a 10-game miss; the 2021 user saw a 10-game miss.
 
 A toy example: if we always over-react to last season's count at one bin, we'd alternate over-prediction and under-prediction year over year. Per-season SAE penalizes both years; aggregate SAE shrugs.
 

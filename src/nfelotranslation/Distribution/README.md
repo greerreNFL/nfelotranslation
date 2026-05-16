@@ -4,13 +4,13 @@ Discrete margin distributions over integer outcomes, anchored to a spread and a 
 
 ## Why it exists
 
-The package's primary job is translating between win probabilities and spreads — `SpreadMap` handles that direction. A spread, however, only describes the bisection point of the margin distribution; it says nothing about the rest of the integer outcomes. Many use cases need that full distribution:
+The package's primary job is translating between win probabilities and spreads — `SpreadMap` handles that direction. A spread, however, only describes the bisection point of the margin distribution; it says nothing about the rest of the integer outcomes, which are needed for common use cases like:
 
 - Pricing alternative spreads — given a market spread of `-3`, what is the probability of a `-7` or better?
 - Expected value calculations — what is `E[margin]` and how does it compare to a posted line?
 - Probabilities of integer outcomes — the chance of a push at any number, or the cumulative probability through a series of integer thresholds.
 
-The Distribution module produces that distribution. It takes `(spread, win_prob)` and returns a `MarginDistribution` whose discrete PMF over integer margins `-75..+75` integrates to the same win probability the spread map ties to that spread, while assigning realistic mass to every integer in between.
+The Distribution module produces that distribution. It takes `(spread, win_prob)` and returns a `MarginDistribution` whose discrete PMF over integer margins `-75..+75` integrates to the same win probability the spread map ties to that spread, while assigning realistic, key aware mass to every integer in between.
 
 ## How a margin distribution is formed
 
@@ -18,11 +18,11 @@ The distribution is built in three stages, each owned by a sub-module:
 
 ### Base — the smooth shape
 
-NFL margin outcomes are roughly normal around the spread, with slightly heavier tails than a Gaussian. The `Base/` sub-module provides a continuous generalized normal centered at the spread, with the scale parameter derived analytically from `(spread, win_prob)` so that `P(margin > 0) = win_prob` holds by construction. The shape parameter `beta` is a fitted hyperparameter (shipped value: `1.35`). Empirical backing for the form lives in `analysis/7. Margin Distribution Form/` and is summarized in `Base/README.md`.
+NFL margin outcomes are roughly normal around the spread, with slightly heavier tails than a Gaussian. The `Base/` sub-module provides a continuous generalized normal centered at the spread, with the scale parameter derived analytically from `(spread, win_prob)` so that `P(margin > 0) = win_prob` holds by construction. The shape parameter `beta` is a fitted hyperparameter (shipped value: `1.35`). Empirical backing for the form lives in Analysis 7 and is summarized in `Base/README.md`.
 
 ### Key — per-integer adjustments
 
-A smooth distribution alone misses NFL's integer-level structure: certain margins (`±3`, `±7`) occur substantially more often than a smooth shape predicts, while others (`±9`, `±12`) occur less often. The `Key/` sub-module tracks a credibility-weighted observed-to-expected ratio for every integer `1..40` and applies it multiplicatively to the baseline PMF: `bin += (ratio - 1) * baseline`. Empirical backing lives in `analysis/8. Key Number Excess Magnitude/` and `analysis/9. Key Number Distance Dependence/`, and is summarized in `Key/README.md`.
+A smooth distribution alone misses NFL's integer-level structure: certain margins (`±3`, `±7`) occur substantially more often than a smooth shape predicts, while others (`±9`, `±12`) occur less often. The `Key/` sub-module tracks a credibility-weighted observed-to-expected ratio for every integer `1..40` and applies it multiplicatively to the baseline PMF: `bin += (ratio - 1) * baseline`. Empirical backing lives in Analysis 8 and is summarized in `Key/README.md`.
 
 ### Normalizer — preserve the core translation
 
