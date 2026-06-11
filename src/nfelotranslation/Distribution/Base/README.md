@@ -28,9 +28,9 @@ The empirical evidence for this choice is in `analysis/7. Margin Distribution Fo
 
 ### Choice of `beta`
 
-The shipped value is `beta = 1.35`, loaded from `src/nfelotranslation/Distribution/margin_hyperparams.json`. This value for beta does not minimize prediction error, but rather is hand picked to make the model more balanced and generalizable across values.
+The shipped value is `beta = 1.24`, loaded from `src/nfelotranslation/Distribution/margin_hyperparams.json`. This value for beta does not minimize prediction error, but rather is hand picked to make the model more balanced and generalizable across values.
 
-The selected value sits inside the feasible window where all three regional checks pass with headroom to spare. The current validation snapshot (`src/nfelotranslation/Distribution/validation/margin_distribution.json`) reports close-region bias of `-1.9%` against a `+/-5%` threshold and tail-region bias of `-5.1%` against a `+/-10%` threshold at `beta = 1.35`. Said more plainly, it is possible to create a model that performs better on an error basis, but fits tails poorly because there are so few observations at higher spreads. In an effort to make nfelotranslation generalizable, a less-than-optimal beta is hand picked based on the tradeoff (pure error minimization vs generalizability).
+The selected value sits inside the feasible window where all three regional checks pass with headroom to spare. The current validation snapshot (`src/nfelotranslation/Distribution/validation/margin_distribution.json`) reports close-region bias of `+0.3%` against a `+/-5%` threshold and tail-region bias of `-5.5%` against a `+/-10%` threshold at `beta = 1.24`. Said more plainly, it is possible to create a model that performs better on an error basis, but fits tails poorly because there are so few observations at higher spreads. In an effort to make nfelotranslation generalizable, a less-than-optimal beta is hand picked based on the tradeoff (pure error minimization vs generalizability).
 
 It's also worth noting that the shipped value is lower than the marginal MLE (`beta = 1.60`, see analysis 7). Becaude key numbers impact the ultimate end distribution, and is optimized with the baseline, best beta need not be the marginal MLE beta.
 

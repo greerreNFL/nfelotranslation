@@ -1,6 +1,7 @@
 '''
 Market Moneyline Calibration — compares market ML implied win probabilities
-against observed win rates across favorite-perspective bins.
+against observed win rates across favorite-perspective bins, and fits split
+Platt parameters by favorite location (home vs away).
 '''
 
 ## built-ins ##
@@ -11,16 +12,26 @@ import sys
 import numpy
 import pandas
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
 
 ## local ##
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from _shared.data import load_data
 from _shared.utils import setup_style, wilson_ci, C_EMPIRICAL, C_MARKET, C_NEUTRAL
+from nfelotranslation.Utilities.MathUtils import logit, clip_prob, expit
 
 
 HERE: pathlib.Path = pathlib.Path(__file__).resolve().parent
 
 setup_style()
+
+
+def fit_platt(logit_wp, y):
+    def nll(params):
+        p = clip_prob(expit(params[0] * logit_wp + params[1]))
+        return float(-numpy.sum(y * numpy.log(p) + (1.0 - y) * numpy.log(1.0 - p)))
+    res = minimize(nll, x0=numpy.array([1.0, 0.0]), method='Nelder-Mead')
+    return float(res.x[0]), float(res.x[1])
 
 
 ## ==================== Load & Prepare ==================== ##
@@ -73,13 +84,35 @@ print(cal[['ml_bin', 'n', 'mean_ml_wp', 'actual_wr', 'error']]
 print(f'\nWeighted MAE: {wmae:.4f}')
 
 
+## ==================== Split Platt by Favorite Location ==================== ##
+
+split_rows = []
+for is_home, label in [(1, 'home'), (0, 'away')]:
+    sub = df_no_tie[df_no_tie['home_is_fav'] == is_home]
+    z = logit(clip_prob(sub['fav_ml_wp'].values))
+    slope, intercept = fit_platt(z, sub['fav_win'].values)
+    split_rows.append({
+        'location': label,
+        'n': len(sub),
+        'slope': slope,
+        'intercept': intercept,
+    })
+split = pandas.DataFrame(split_rows)
+
+print('\n=== Split Platt (Full Sample, by Favorite Location) ===')
+print(split.round(4).to_string(index=False))
+print('  p_cal = expit(a_loc * logit(p_market) + b_loc)')
+
+
 ## ==================== Output ==================== ##
 
 cal_out = cal[['ml_bin', 'n', 'mean_ml_wp', 'actual_wr',
                'ci_lo', 'ci_hi', 'error']].copy()
 cal_out['ml_bin'] = cal_out['ml_bin'].astype(str)
 cal_out.to_csv(HERE / 'output.csv', index=False)
-print(f'Saved: {HERE / "output.csv"}')
+split.to_csv(HERE / 'output_split_platt.csv', index=False)
+print(f'\nSaved: {HERE / "output.csv"}')
+print(f'Saved: {HERE / "output_split_platt.csv"}')
 
 
 ## ==================== Chart ==================== ##

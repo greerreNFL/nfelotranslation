@@ -61,34 +61,34 @@ So the feasible window is `beta ∈ [1.15, 1.50]`. The center and the tail want 
 
 Inside the feasible window, per-season SAE is relatively flat — the absolute SAE difference between `beta=1.20` and `beta=1.50` is on the order of 1-2 games per season (out of ~272). Most of the available SAE improvement is captured by `beta ≈ 1.25`, with diminishing returns above that.
 
-## Current shipped value: beta = 1.35
+## Current shipped value: beta = 1.24
 
-Selected as the center of the feasible window. At `beta=1.35`, with the other three hyperparams at their shipped values:
+Selected to pass the regional bias gates with headroom under the refactored pipeline. At `beta=1.24`, with the other three hyperparams at their shipped values (`forgetting_rate=0.04`, `threshold=15`, `initial_prior_size=52`):
 
-* per-season-averaged SAE: 111.85 games
-* close-bias: −1.9% (3.1pp headroom against the ±5% threshold)
-* tail-bias: −5.1% (4.9pp headroom against the ±10% threshold)
-* mid-bias: +5.4% (no threshold)
+* per-season-averaged SAE: ~113 games
+* close-bias: +0.3% (4.7pp headroom against the ±5% threshold)
+* tail-bias: −5.5% (4.5pp headroom against the ±10% threshold)
+* mid-bias: +1.5% (no threshold)
 
-The headroom matters as much as the SAE number. `beta=1.50` is ~0.5 games better on SAE but its tail-bias is −9.7% — within 0.3pp of failing on a single season's drift. `beta=1.35` is comfortably in the middle of the feasible window and survives reasonable distributional shifts in the data.
+The headroom matters as much as the SAE number. Higher `beta` values can improve SAE but push tail-bias toward the −10% gate; `beta=1.24` is the value that clears the validator on the current training pipeline (`pipeline_id` `628c245d`).
 
-The other three hyperparams (forgetting_rate=0.087, threshold=25, initial_prior_size=52) have not been retuned recently. Sweeping them under per-season-averaged SAE with `beta` held fixed produces ~0.4 games of additional improvement spread across the three — small enough that it's not worth a re-tune cycle on its own.
+The other three hyperparams were re-tuned under constrained search (`threshold=15`, `initial_prior_size=52` fixed; `forgetting_rate` optimized). Prior shipped values were `forgetting_rate=0.087`, `threshold=25`, `initial_prior_size=52`.
 
 ## Train-time vs inference-time beta — calibrated, not a bug
 
 The trainer's per-integer baseline computation in `_compute_baselines` uses `scipy_norm.pdf` (a standard Normal, equivalent to `gennorm(beta=2)` up to scale convention) regardless of the inference-time `beta`. This looks like it should be a bug — training computes "expected hits at margin k" against one shape while inference applies the resulting credibility ratio against a different shape — but a matrix sweep of `(beta_train × beta_inference)` shows the current decoupling sits in a comfortably-passing corner of the feasible region.
 
-The mechanism is the redistribution effect described above. Higher `beta_train` (training baseline thinner-tailed and more peaked) produces higher "expected hits" at the intermediate keys (3, 7, 10, 14, 17), which yields lower credibility ratios there, which yields weaker corrections at inference. That weaker amplification is exactly what's needed because inference uses gennorm(1.35) which already has heavier tails than the trainer's Normal baseline. The two effects compose to produce well-calibrated key-number predictions.
+The mechanism is the redistribution effect described above. Higher `beta_train` (training baseline thinner-tailed and more peaked) produces higher "expected hits" at the intermediate keys (3, 7, 10, 14, 17), which yields lower credibility ratios there, which yields weaker corrections at inference. That weaker amplification is exactly what's needed because inference uses gennorm(1.24) which already has heavier tails than the trainer's Normal baseline. The two effects compose to produce well-calibrated key-number predictions.
 
-If you "fix" the inconsistency naively (use `gennorm(beta=1.35)` baselines at training, matching inference), the corrections become too strong at intermediate keys and too weak at far tails. Tail bias goes from −5.1% to −10.4% — the model fails the validator. The matrix sweep at `.local/hyperparam_optimization/beta_matrix.py` is the empirical proof.
+If you "fix" the inconsistency naively (use `gennorm(beta=1.24)` baselines at training, matching inference), the corrections can become too strong at intermediate keys and too weak at far tails. The matrix sweep at `.local/hyperparam_optimization/beta_matrix.py` is the empirical proof — re-run it after any beta change.
 
 So the train/inference decoupling is intentional in effect even if it wasn't designed deliberately. Do not unify the betas without re-running the matrix sweep and confirming the regional bias checks still pass.
 
 ## What this module does NOT tune
 
 * `tie_prob` (in `margin_hyperparams.json`). Set empirically from the historical rate of integer-margin=0 outcomes; not a fitted hyperparameter.
-* The Recalibrator's `slope` / `intercept`. Fitted by `RecalibratorFitter` in `training/Calibration/`.
-* The SpreadMappers' `slope` / `intercept` for MODEL and MARKET. Fitted by `SpreadMapperFitter` in `training/SpreadMap/`.
+* The Recalibrator's split Platt slopes and per-season intercepts. Fitted by `RecalibratorFitter` in `training/Calibration/`.
+* The SpreadMapper's `slope` / `intercept`. Fitted by `SpreadMapperFitter` in `training/SpreadMap/`.
 
 These three are independent fits with their own loss functions and validators. The hyperparams here only affect how the KeyModel and the gennorm base shape compose into the final margin PMF.
 
@@ -133,7 +133,7 @@ from nfelotranslation.Utilities.JsonIo import (
 )
 write_config_envelope(
     'src/nfelotranslation/Distribution/margin_hyperparams.json',
-    {'beta': 1.35, 'tie_prob': 0.002},
+    {'beta': 1.24, 'tie_prob': 0.002},
     ConfigMetadata.new(pipeline_id=generate_pipeline_id()),
 )
 ```

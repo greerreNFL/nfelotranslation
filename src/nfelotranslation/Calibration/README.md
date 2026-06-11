@@ -1,22 +1,20 @@
 # Calibration
 
-Platt / logit-linear recalibration of market ML win probabilities.
+Split Platt / logit-linear recalibration of market ML win probabilities.
 
 ## Why it exists
 
-NFL moneylines exhibit a systematic, time-persistent bias at the tails: they overstate the odds of slight favorites (roughly 0.55 to 0.65 implied) and understate the odds of heavy favorites (above 0.85 implied).
+NFL moneylines exhibit a systematic, time-persistent bias: they compress toward 50%, overstating mild favorites and understating (or inconsistently pricing) strong favorites depending on location. Home favorites and away favorites do not share the same miscalibration shape — see `analysis/1. Market Moneyline Calibration/`.
 
-Pairwise comparison models typically optimize for observed outcomes, not implied moneyline win probabilities. A translation model that will be consumed by a pairwise model therefore needs to be built from a "true" win probability, not a moneyline implied one. Recalibration of moneyline implied win probabilities is necessary to create a training dataset of true expected win probabilities.
+Pairwise comparison models and downstream fitters (SpreadMapper, KeyModel) need training labels in **model win-probability space**, not raw market implied probabilities. The Recalibrator derives those labels from closing moneylines.
 
-The Recalibrator takes moneyline implied win probabilities and applies a Platt / logit-linear transformation to correct their bias.
-
-This bias is observed across decades, which points towards it being structural in nature and appropriate for a stationary, static fit.
+Recalibration is a **training and research primitive only**. It is not composed into the inference `Translator`. At prediction time callers pass model win probabilities or model spreads; applying recalibration in production would inject information not knowable at that point in time (see `analysis/2. Calibration Stationarity/`).
 
 ## Empirical evidence
 
 ### The bias is real and measurable
 
-Across 5,281 games (2006 to 2025, excluding ties), the observed favorite win rate diverges from the implied probability in the mid and upper bins. Full per-bin results in `analysis/1. Market Moneyline Calibration/`:
+Across 5,281 games (2006 to 2025, ties excluded), favorite-perspective implied probabilities diverge from observed win rates. Full per-bin results in `analysis/1. Market Moneyline Calibration/`:
 
 | Bin | n | Implied | Observed | Error |
 |-----|---:|---:|---:|---:|
@@ -25,11 +23,13 @@ Across 5,281 games (2006 to 2025, excluding ties), the observed favorite win rat
 | 0.85 - 0.90 | 219 | 0.8719 | 0.8995 | +0.0276 |
 | 0.90 - 1.00 | 49 | 0.9155 | 0.9592 | +0.0437 |
 
-The crossover occurs around 0.65 to 0.70 where the implied probability tracks the observed rate. Weighted MAE across all bins: 0.0129.
+Weighted MAE across bins: 0.0129. Home and away favorites require separate slopes (full-sample: `a_home ≈ 1.21`, `a_away ≈ 0.97`).
 
-### The bias is stationary
+### Slopes are structural; intercepts drift
 
-Full per-season results in `analysis/2. Calibration Stationarity/`. Per-season Platt slopes have a mean of 1.1637 with linear trend p=0.795; per-season intercepts have a mean of -0.1331 with trend p=0.495; per-season weighted MAE has trend p=0.659. None of the three reject zero at conventional thresholds over the 2006 to 2025 window, and the per-era error shape retains the same sign pattern in the upper and mid-range bins across all four eras. A single static fit over the full sample is appropriate.
+`analysis/2. Calibration Stationarity/` fits split Platt parameters by season. Per-location **slopes** are stable enough to treat as omniscient (full-sample fit, held fixed across seasons). **Intercepts** vary over calendar time — especially for home favorites — consistent with slow-moving home-field-advantage mispricing.
+
+The shipped training scheme holds slopes fixed and refits **intercepts** on a centered 5-season window (edge-padded) for each label season. Walk-forward intercepts improve training-label calibration vs a static omniscient intercept; they are not used at inference.
 
 ### Platt scaling is the best method
 
@@ -43,52 +43,58 @@ Seven recalibration methods were compared via leave-one-season-out CV. Full resu
 | 4 | Beta | 3 | 0.0116 | 0.0167 |
 | 7 | Platt+ReLU | 4 | 0.0125 | 0.0120 |
 
-Log loss does not discriminate between methods (all within 0.0005), but ECE separates them. Every method with more than two parameters has a higher ECE tail than Platt; the four-parameter tail extensions (ReLU, Softplus, Piecewise) reduce the 0.85 to 1.00 residuals relative to Platt but enlarge the 0.80 to 0.85 residual, and the 0.80 to 0.85 bin population dominates the ECE tail calculation.
-
-A residual in the 0.60 to 0.65 bin (roughly -0.0144 to -0.0201 across fitted methods) persists across all methods, folds, and eras and is not removed by any of the tested functional forms.
+Log loss does not discriminate between methods (all within 0.0005), but ECE separates them. Every method with more than two parameters has a higher ECE tail than Platt.
 
 ## The math
 
+Favorite-perspective split Platt:
+
 ```
-z     = logit(p_market)           # log-odds of market probability
-z_cal = slope * z + intercept     # linear correction on logit scale
-p_cal = expit(z_cal)              # back to probability
+z       = logit(p_market)                         # log-odds of market probability
+z_cal   = a_loc * z + b_loc                       # separate slope/intercept by location
+p_cal   = expit(z_cal)                            # back to probability
 ```
 
-- **slope > 1** — the market hedges toward 50%; recalibration stretches probabilities outward toward the extremes.
-- **intercept ≈ 0** — no systematic directional bias.
+- **`a_home > a_away`** — home favorites need more de-compression; away favorites are closer to identity.
+- **`b_loc`** — captures level shift (HFA / market pricing drift); varies by season in training configs.
 
 ## Pipeline position
 
-The Recalibrator only exists as a translation layer between the moneyline implied win probabilities and the true expected win probabilities. Its main use is in creating a dataset to model downstream primitives from a stronger foundation. Its inclusion also offers functionality for the translator to produce true distributions from biased moneylines, or produce biased moneylines from true distributions.
+```
+Training:  market ML  →  [Recalibrator]  →  ml_wp_cal  →  SpreadMapper / KeyModel fitters
+Inference: model WP or spread  →  [Translator]  (no Recalibrator)
+```
 
-```
-raw market WP  →  [Recalibrator]  →  recalibrated WP  →  downstream primitives
-```
+End users may import `Recalibrator` directly for historical labeling or research.
 
 ## Modules
 
 ### `Recalibrator`
 
-The runtime primitive. Init + calibrate + serialize — no fitting dependencies.
+Runtime primitive. Init + calibrate + serialize — no fitting dependencies.
 
-- `__init__(params)` — construct from PlattParams
-- `calibrate(win_prob)` — apply recalibration to an array of probabilities
-- `to_file(filepath)` / `from_file(filepath)` — JSON persistence
-- `from_params(slope, intercept)` — direct construction
+- `__init__(params)` — construct from `SplitPlattParams`
+- `calibrate(win_prob, is_home_fav=None)` — apply recalibration
+- `to_file(filepath)` / `from_file(filepath, season=None)` — JSON persistence with optional per-season config
+- `from_params(slopes, intercepts)` — direct construction
 
 ### Types
 
-- `PlattParams` — `@dataclass(slope, intercept)` with JSON serialization
+- `SplitPlattParams` — `slopes` and `intercepts` dicts (`home` / `away`), optional `fit` metadata
 - `CalibrationResult` — diagnostic output with before/after metrics and `summary()` display
 
 ## Retraining
 
 Fitting and validation live in the repository's `training/` package, which is not part of the installed distribution. See `training/TRAINING.md` for how to run the pipeline.
 
-## `platt_params.json`
+## Config files
+
+Root envelope `platt_params.json` holds the latest shipped parameters. Per-season training labels live in `configs/platt_params_{season}.json`.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `slope` | float | Logit-linear slope. Values > 1 mean the market compresses toward 50%; recalibration stretches probabilities outward. |
-| `intercept` | float | Logit-linear intercept. Near 0 means no systematic directional bias. |
+| `slopes.home`, `slopes.away` | float | Omniscient split slopes |
+| `intercepts.home`, `intercepts.away` | float | Intercepts for the label season |
+| `fit.window_type` | str | `centered` for the shipped intercept scheme |
+| `fit.window_width` | int | Seasons in the intercept window (shipped: 5) |
+| `fit.seasons_used` | list | Seasons contributing to the intercept fit |

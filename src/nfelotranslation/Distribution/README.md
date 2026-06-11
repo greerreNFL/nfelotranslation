@@ -18,7 +18,7 @@ The distribution is built in three stages, each owned by a sub-module:
 
 ### Base — the smooth shape
 
-NFL margin outcomes are roughly normal around the spread, with slightly heavier tails than a Gaussian. The `Base/` sub-module provides a continuous generalized normal centered at the spread, with the scale parameter derived analytically from `(spread, win_prob)` so that `P(margin > 0) = win_prob` holds by construction. The shape parameter `beta` is a fitted hyperparameter (shipped value: `1.35`). Empirical backing for the form lives in Analysis 7 and is summarized in `Base/README.md`.
+NFL margin outcomes are roughly normal around the spread, with slightly heavier tails than a Gaussian. The `Base/` sub-module provides a continuous generalized normal centered at the spread, with the scale parameter derived analytically from `(spread, win_prob)` so that `P(margin > 0) = win_prob` holds by construction. The shape parameter `beta` is a fitted hyperparameter (shipped value: `1.24`). Empirical backing for the form lives in Analysis 7 and is summarized in `Base/README.md`.
 
 ### Key — per-integer adjustments
 
@@ -83,7 +83,7 @@ Loaded once at module import as `MARGIN_HYPERPARAMS`, the single source of truth
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `beta` | float | Generalized-normal shape parameter for the base distribution. Shipped value `1.35` (between Gaussian at `2.0` and Laplace at `1.0`). |
+| `beta` | float | Generalized-normal shape parameter for the base distribution. Shipped value `1.24` (between Gaussian at `2.0` and Laplace at `1.0`). |
 | `tie_prob` | float | Discrete tie probability carved out at margin `0` by the Normalizer. Shipped value `0.002`. |
 
 ## Retraining

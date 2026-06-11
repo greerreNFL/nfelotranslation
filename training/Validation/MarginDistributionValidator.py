@@ -21,12 +21,11 @@ import nfelotranslation
 from scipy.stats import linregress
 
 ## local ##
-from nfelotranslation.Calibration.Recalibrator import Recalibrator
 from nfelotranslation.Distribution.Key import KEY_MODEL_PARAMS, KeyModel
 from nfelotranslation.Distribution.MarginDistributionModel import MarginDistributionModel
+from nfelotranslation.SpreadMap.SpreadMapper import SpreadMapper
 from nfelotranslation.Utilities.JsonIo import find_config_path
 from nfelotranslation.Utilities.ValidationTypes import TrackedMetric, ValidationCheck, ValidationReport
-from nfelotranslation.SpreadMap.SpreadMapper import load_mapper_pair
 from .Validator import Validator
 
 ## ==================== Constants ==================== ##
@@ -97,8 +96,7 @@ class MarginDistributionValidator(Validator):
         * ValidationReport with checks and metrics
         '''
         ## load fixed components ##
-        rec = Recalibrator.from_file()
-        model_mapper, market_mapper, _ = load_mapper_pair()
+        mapper = SpreadMapper.from_file()
         ## load per-season margin models ##
         oos_games = self._games[self._games['season'] >= self._min_season].copy()
         seasons = sorted(oos_games['season'].unique())
@@ -114,17 +112,17 @@ class MarginDistributionValidator(Validator):
             mm = mm_cache[int(season)]
             season_model = numpy.zeros(151)
             season_actual = numpy.zeros(151)
-            for spread_val, group in season_games.groupby('spread_line'):
-                n = len(group)
-                market_wp = float(market_mapper.spread_to_win_prob(float(spread_val)))
-                cal_wp = float(rec.calibrate(numpy.array([market_wp]))[0])
-                model_spread = model_mapper.win_prob_to_spread(cal_wp)
+            for _, row in season_games.iterrows():
+                if pandas.isna(row.get('ml_wp_cal')):
+                    continue
+                cal_wp = float(row['ml_wp_cal'])
+                model_spread = mapper.win_prob_to_spread(cal_wp)
                 dist = mm.predict(float(model_spread.continuous), cal_wp)
-                season_model += dist.pmf * n
-                for margin in group['result'].values:
-                    m_int = int(round(margin))
-                    if -75 <= m_int <= 75:
-                        season_actual[m_int + 75] += 1
+                season_model += dist.pmf
+                margin = row['result']
+                m_int = int(round(margin))
+                if -75 <= m_int <= 75:
+                    season_actual[m_int + 75] += 1
             model_counts += season_model
             actual_counts += season_actual
             ## per-season SAE as percentage ##

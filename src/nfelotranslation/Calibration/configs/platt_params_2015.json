@@ -1,0 +1,28 @@
+{
+    "metadata": {
+        "pipeline_id": "628c245d",
+        "generated_at": "2026-06-11T17:02:10+00:00"
+    },
+    "params": {
+        "slopes": {
+            "home": 1.2113610332924414,
+            "away": 0.9726744319165792
+        },
+        "intercepts": {
+            "home": -0.09209008789062503,
+            "away": 0.08906784057617192
+        },
+        "fit": {
+            "window_type": "centered",
+            "window_width": 5,
+            "seasons_used": [
+                2013,
+                2014,
+                2015,
+                2016,
+                2017
+            ],
+            "label_season": 2015
+        }
+    }
+}

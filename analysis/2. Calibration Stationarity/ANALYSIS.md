@@ -2,38 +2,47 @@
 
 ## Hypothesis
 
-The miscalibration pattern identified in `1. Market Moneyline Calibration/` is stable over time, so a single static recalibrator fit on the pooled sample is an adequate correction. Under this hypothesis, per-season Platt parameters will vary around a stable mean with no detectable linear trend, the per-era error shape will be consistent, and per-season weighted MAE will not trend.
+The miscalibration pattern identified in `1. Market Moneyline Calibration/` is persistent over time, but not all Platt parameters need the same treatment. Under this hypothesis, split **slopes** (home vs away) are stable enough to treat as omniscient structural parameters, while **intercepts** drift over calendar time and require a season-aware refit scheme for training labels. The per-era error shape remains consistent, and per-season weighted MAE does not trend.
 
 ## Method
 
-Three complementary checks are run on the favorite-perspective game sample used in `1. Market Moneyline Calibration/`:
+Four complementary checks are run on the favorite-perspective game sample used in `1. Market Moneyline Calibration/`:
 
-1. Per-season Platt fit. For each season with at least 50 qualifying games, fit `p_cal = expit(a * logit(p_raw) + b)` in isolation and record the slope and intercept. Summarize with mean, standard deviation, coefficient of variation, and a linear regression of each parameter on season.
-2. Calibration error shape by era. Partition seasons into four blocks (2006 to 2010, 2011 to 2015, 2016 to 2020, 2021 to 2025) and compute the signed per-bin error `observed - implied` in each era.
-3. Per-season weighted MAE. Bin each season separately and report weighted MAE; test for a linear trend on season.
+1. **Omniscient split slopes.** Fit `p_cal = expit(a_loc * logit(p_raw) + b_loc)` separately for home favorites and away favorites on the full pooled sample. Record the slopes as the structural parameters held fixed in production training.
+2. **Per-season split Platt fit.** For each season with at least 50 qualifying games per location, fit split Platt in isolation and record home/away slopes and intercepts. Summarize with mean, standard deviation, and a linear regression of each parameter on season.
+3. **Calibration error shape by era.** Partition seasons into four blocks (2006 to 2010, 2011 to 2015, 2016 to 2020, 2021 to 2025) and compute the signed per-bin error `observed - implied` in each era.
+4. **Per-season weighted MAE.** Bin each season separately and report weighted MAE; test for a linear trend on season.
+5. **Intercept scheme comparison.** With omniscient slopes fixed, compare full-sample log loss and Brier score for: raw market ML, static omniscient intercepts, and centered 5-year intercept refits (edge-padded) — the shipped training scheme.
 
 Outputs (probabilities as floats in `[0, 1]`, four decimal places):
 
-- `output.csv` — per-season Platt slope and intercept with sample counts.
+- `output.csv` — per-season split Platt slopes and intercepts with sample counts.
 - `output_era.csv` — per-era, per-bin observed rate, implied probability, and signed error.
 - `output_annual.csv` — per-season weighted MAE.
-- `chart.png` — four panels: Platt slope by season, Platt intercept by season, calibration error shape by era, and weighted MAE per season.
+- `output_centered_compare.csv` — log loss and Brier score by intercept scheme.
+- `chart.png` — four panels: split slopes by season, split intercepts by season, calibration error shape by era, and weighted MAE per season.
 
 ## Findings
 
 Sample: 5,281 games across seasons 2006 to 2025 (ties excluded).
 
-### Per-season Platt parameters
+### Omniscient split slopes (full sample)
 
-| Statistic | Slope (a) | Intercept (b) |
-|---|---:|---:|
-| Mean | 1.1637 | -0.1331 |
-| Std | 0.3021 | 0.2698 |
-| Coefficient of variation | 0.2596 | n/a |
-| Linear trend per year | +0.0032 | +0.0074 |
-| p-value of trend | 0.795 | 0.495 |
+| Location | Slope (a) |
+|---|---:|
+| Home favorite | 1.2113 |
+| Away favorite | 0.9726 |
 
-Per-season values range from 0.6516 (2023) to 1.7478 (2012) for slope and from -0.5449 (2012) to +0.3489 (2013) for intercept. Full per-season table is in `output.csv`.
+### Per-season split Platt parameters
+
+| Statistic | Home slope | Away slope | Home intercept | Away intercept |
+|---|---:|---:|---:|---:|
+| Mean | 1.2580 | 1.0209 | -0.2316 | +0.0125 |
+| Std | 0.4399 | 0.5190 | 0.4071 | 0.2666 |
+| Linear trend per year | -0.0046 | +0.0295 | +0.0137 | -0.0092 |
+| p-value of trend | 0.796 | 0.147 | 0.400 | 0.389 |
+
+Per-season values show high sampling variance at ~130 to 170 games per location per season. Slope trends fail to reject zero at conventional thresholds; intercept trends are similarly indistinguishable from noise season-by-season, but home intercepts exhibit visible calendar drift in the time series (see `chart.png`). Full per-season table is in `output.csv`.
 
 ### Error shape by era (favorite implied probability bin)
 
@@ -52,6 +61,16 @@ The 0.90 to 1.00 bin is positive in three of four eras; the 0.80 to 0.90 bin is 
 
 Weighted MAE per season ranges from 0.0181 (2018) to 0.0858 (2006). Linear trend: -0.0003/year with p=0.659. Full per-season table is in `output_annual.csv`.
 
+### Intercept scheme comparison (omniscient slopes fixed)
+
+| Scheme | Log loss | Brier |
+|---|---:|---:|
+| Raw market ML | 0.6095 | 0.2111 |
+| Static omniscient intercept | 0.6086 | 0.2108 |
+| Centered 5-year intercept | 0.6081 | 0.2106 |
+
+Centered 5-year intercepts improve log loss by 0.0013 vs raw market on the full sample. This scheme is used for training labels stored in `Calibration/configs/platt_params_{season}.json`. Recalibration is not applied at inference.
+
 ## Conclusion
 
-The per-season variation in Platt parameters is consistent with sampling noise at a ~265-game sample per season rather than structural drift: both slope and intercept trends fail to reject zero at conventional thresholds (p=0.795 and p=0.495 respectively), and the per-era error shape retains the same sign pattern in the upper and mid-range bins across the four eras examined. On the evidence here, a single static Platt recalibrator fit on the pooled sample is appropriate. Periodic re-fit and revalidation remains prudent as more seasons accumulate; the `training/Validation/RecalibratorValidator` stationarity block reruns the per-season fit on demand.
+Split Platt **slopes** are stable enough to fit once on the full sample and hold fixed (`a_home ≈ 1.21`, `a_away ≈ 0.97`). **Intercepts** vary over calendar time, especially for home favorites, justifying per-season intercept refits on a centered 5-year window for training labels. The per-era error shape retains the same sign pattern in the upper and mid-range bins across the four eras examined. A single static intercept is adequate for research but the centered scheme produces slightly better training labels. Periodic re-fit and revalidation remains prudent as more seasons accumulate; the `training/Validation/RecalibratorValidator` stationarity block reruns the per-season fit on demand.

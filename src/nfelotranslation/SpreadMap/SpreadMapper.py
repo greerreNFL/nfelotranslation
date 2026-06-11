@@ -5,43 +5,32 @@ Sign convention:
     positive spread = favorite is expected to win by that many points.
     This is the unified package-wide convention: matches the sign of margin
     (positive = home/favorite won), matches the DataLoader's spread_line,
-    and matches the Translator's input/output conventions for both
-    `spread` and `market_spread`.
+    and matches the Translator's input/output conventions for `spread`.
 
 Maps win probabilities to spreads using a parametric linear-in-logit model:
 
     spread = slope * logit(win_prob) + intercept
 
-Two instances are needed in practice:
-    * MODEL  mapper — fitted against actual game margins
-    * MARKET mapper — fitted against market-posted lines
-
-Both use MAE loss (median-targeting).  The distinction is the target variable,
-not the loss function.
+Fitted on recalibrated training labels (ml_wp_cal) vs actual margins with
+intercept fixed at 0 at fit time.
 
 On-disk format — spread_map_params.json is a config envelope:
 
     {
         "metadata": {"pipeline_id": "...", "generated_at": "..."},
-        "params": {
-            "model":  {"slope": ..., "intercept": ...},
-            "market": {"slope": ..., "intercept": ...}
-        }
+        "params": {"slope": ..., "intercept": ...}
     }
-
-Both mappers live in the same file; callers typically save them as a pair
-via save_mapper_pair() and load a single mapper via SpreadMapper.from_file().
 '''
 
 ## built-ins ##
 import pathlib
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 ## external ##
 import numpy
 
 ## local ##
-from .Types import MapType, LinearMapParams, Spread
+from .Types import LinearMapParams, Spread
 from ..Utilities.JsonIo import (
     ConfigMetadata,
     find_config_path,
@@ -66,8 +55,7 @@ class SpreadMapper:
     '''
     Applies linear-in-logit spread mapping.
 
-    Translates between win probability and spread in a single coordinate
-    system (model or market).  The mapping:
+    Translates between win probability and spread.  The mapping:
 
         spread = slope * logit(wp) + intercept
         wp     = expit((spread - intercept) / slope)
@@ -76,7 +64,7 @@ class SpreadMapper:
     lookup tables at sparse tails (analysis 09).
 
     Usage:
-        mapper = SpreadMapper.from_file(MapType.MODEL)
+        mapper = SpreadMapper.from_file(season=2025)
         spread = mapper.win_prob_to_spread(0.60)
         wp     = mapper.spread_to_win_prob(spread.continuous)
     '''
@@ -133,34 +121,27 @@ class SpreadMapper:
         s = numpy.asarray(spread, dtype=float)
         return expit((s - self.params.intercept) / self.params.slope)
 
-    def to_file(self, map_type: MapType, filepath: Optional[str] = None) -> None:
+    def to_file(self, filepath: Optional[str] = None) -> None:
         '''
-        Persist parameters to JSON, merging into the shared envelope under
-        the map_type key.  Preserves whatever other map_type is already in
-        the file along with its existing metadata (bulk writes should use
-        save_mapper_pair() instead to stamp fresh metadata).
+        Persist parameters to JSON.
 
         Parameters:
-        * map_type: MapType.MODEL or MapType.MARKET
         * filepath: override path (defaults to package state path)
         '''
         path = str(filepath) if filepath is not None else str(_STATE_PATH)
-        payload, metadata = _read_or_empty(path)
-        payload[map_type.value] = self.params.to_dict()
-        write_config_envelope(path, payload, metadata)
+        write_config_envelope(path, self.params.to_dict(), self.metadata)
 
     ## ==================== Factory Methods ==================== ##
 
     @classmethod
     def from_file(
         cls,
-        map_type: MapType,
         filepath: Optional[str] = None,
         *,
         season: Optional[int] = None,
     ) -> 'SpreadMapper':
         '''
-        Load a SpreadMapper from JSON, selecting the map_type sub-dict.
+        Load a SpreadMapper from JSON.
 
         Resolution order:
         1. ``filepath`` if given.
@@ -170,7 +151,6 @@ class SpreadMapper:
         3. Otherwise, the package root snapshot ``spread_map_params.json``.
 
         Parameters:
-        * map_type: MapType.MODEL or MapType.MARKET
         * filepath: explicit override (highest precedence)
         * season:   target season, used only when ``filepath`` is None
 
@@ -194,7 +174,8 @@ class SpreadMapper:
         else:
             path = str(_STATE_PATH)
         payload, metadata = read_config_envelope(path)
-        return cls(LinearMapParams.from_dict(payload[map_type.value]), metadata=metadata)
+        params = _parse_params(payload)
+        return cls(params, metadata=metadata)
 
     @classmethod
     def from_params(cls, slope: float, intercept: float) -> 'SpreadMapper':
@@ -208,66 +189,16 @@ class SpreadMapper:
         return cls(LinearMapParams(slope=slope, intercept=intercept))
 
 
-## ==================== Pair IO ==================== ##
-
-
-def save_mapper_pair(
-    model_mapper: SpreadMapper,
-    market_mapper: SpreadMapper,
-    metadata: ConfigMetadata,
-    filepath: Optional[str] = None,
-) -> str:
-    '''
-    Write both mappers to a single envelope file atomically.
-
-    Parameters:
-    * model_mapper: fitted model-coordinate SpreadMapper
-    * market_mapper: fitted market-coordinate SpreadMapper
-    * metadata: ConfigMetadata to stamp on the envelope
-    * filepath: override path (defaults to package state path)
-
-    Returns:
-    * path to the written file
-    '''
-    path = str(filepath) if filepath is not None else str(_STATE_PATH)
-    payload = {
-        MapType.MODEL.value: model_mapper.params.to_dict(),
-        MapType.MARKET.value: market_mapper.params.to_dict(),
-    }
-    write_config_envelope(path, payload, metadata)
-    ## mirror the written metadata onto the mapper instances ##
-    model_mapper.metadata = metadata
-    market_mapper.metadata = metadata
-    return path
-
-
-def load_mapper_pair(
-    filepath: Optional[str] = None,
-) -> Tuple[SpreadMapper, SpreadMapper, ConfigMetadata]:
-    '''
-    Read both mappers and shared metadata from a single envelope file.
-
-    Parameters:
-    * filepath: override path (defaults to package state path)
-
-    Returns:
-    * (model_mapper, market_mapper, metadata) tuple
-    '''
-    path = str(filepath) if filepath is not None else str(_STATE_PATH)
-    payload, metadata = read_config_envelope(path)
-    model = SpreadMapper(LinearMapParams.from_dict(payload[MapType.MODEL.value]), metadata=metadata)
-    market = SpreadMapper(LinearMapParams.from_dict(payload[MapType.MARKET.value]), metadata=metadata)
-    return model, market, metadata
-
-
 ## ==================== Private ==================== ##
 
 
-def _read_or_empty(path: str) -> Tuple[dict, ConfigMetadata]:
-    '''Read an existing envelope, or return empty payload + metadata if missing.'''
-    if not pathlib.Path(path).exists():
-        return {}, ConfigMetadata()
-    return read_config_envelope(path)
+def _parse_params(payload: dict) -> LinearMapParams:
+    '''Accept current single-param envelope or legacy model/market envelope.'''
+    if 'slope' in payload:
+        return LinearMapParams.from_dict(payload)
+    if 'model' in payload:
+        return LinearMapParams.from_dict(payload['model'])
+    raise KeyError('SpreadMapper config must contain slope/intercept or legacy model key')
 
 
 def _clamp_half(x: numpy.ndarray) -> numpy.ndarray:

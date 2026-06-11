@@ -4,22 +4,8 @@ SpreadMap data structures.
 
 from dataclasses import dataclass
 from typing import Dict, Any
-from enum import Enum
 import json
 import pathlib
-
-
-class MapType(Enum):
-    '''
-    Identifies which spread-mapping coordinate system to use.
-
-    MODEL  — fitted against actual game margins.
-    MARKET — fitted against market-posted lines.
-
-    Both use MAE loss (median-targeting).
-    '''
-    MODEL = 'model'
-    MARKET = 'market'
 
 
 @dataclass
@@ -38,9 +24,8 @@ class LinearMapParams:
     * slope — points of spread per unit of logit. With slope ≈ 6 to 7, each
       unit of logit (≈ 10pp of WP at the center) corresponds to about 6 to 7
       points of spread.
-    * intercept — the spread at 50% win probability. The shipped MODEL
-      mapper is fit with intercept fixed at 0 to anchor the mapping at
-      WP=0.50 ↔ spread=0. The MARKET mapper is fit with both parameters free.
+    * intercept — the spread at 50% win probability. The shipped mapper is
+      fit with intercept fixed at 0 to anchor the mapping at WP=0.50 ↔ spread=0.
     '''
     slope: float
     intercept: float

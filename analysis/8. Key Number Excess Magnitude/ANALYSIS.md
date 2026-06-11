@@ -11,7 +11,7 @@ Source data: merged games and market frame produced by `analysis/_shared/data.lo
 Two baselines are evaluated, paralleling the shipped pipeline's behavior:
 
 1. **Variable-scale Gaussian** — `N(loc=spread, scale=spread / norm.ppf(wp))`. Used by `KeyModelFitter._compute_baselines` to derive expected hits during training.
-2. **Generalized normal at the shipped shape** — `gennorm(beta=1.35, loc=spread, scale=spread / gennorm.ppf(wp, 1.35))`. Constructed by `MarginDistributionModel.predict` at inference time and used as the surface that the trained ratios are applied against.
+2. **Generalized normal at the shipped shape** — `gennorm(beta=1.24, loc=spread, scale=spread / gennorm.ppf(wp, 1.24))`. Constructed by `MarginDistributionModel.predict` at inference time and used as the surface that the trained ratios are applied against.
 
 Both baselines satisfy `P(margin > 0) = wp` by construction; they differ only in how they distribute mass across integer margins.
 
@@ -60,7 +60,7 @@ Full per-integer data (all `k` in `1..40`) under both baselines is in `output.cs
 2. `k = 7` is the second-largest positive integer (`+0.042`, ratio `1.93`); `k = 6`, `k = 14`, `k = 10`, and `k = 17` form a second tier of positive integers in the `+0.008` to `+0.019` band.
 3. The strongest dead zones are `k = 9` (`-0.026`, ratio `0.37`) and `k = 12` (`-0.018`, ratio `0.49`); `k = 11`, `k = 15`, and `k = 19` form a second tier in the `-0.010` to `-0.016` band.
 4. Above `k = 20`, aggregate excess rates fall to `|excess| < 0.01` for almost all integers, with several reversals in sign across the range.
-5. Switching the baseline from Gaussian to gennorm at `beta = 1.35` lowers expected hits at every integer in `1..40` by a few percent, which raises the implied ratio uniformly without shifting the locations of keys or dead zones.
+5. Switching the baseline from Gaussian to gennorm at `beta = 1.24` lowers expected hits at every integer in `1..40` by a few percent, which raises the implied ratio uniformly without shifting the locations of keys or dead zones.
 
 ### Per-season variance (gennorm baseline, 20 seasons)
 

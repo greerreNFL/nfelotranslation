@@ -3,47 +3,59 @@ Calibration data structures.
 '''
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
-class PlattParams:
+class SplitPlattParams:
     '''
-    Parameters for Platt / logit-linear recalibration.
+    Split Platt parameters for home-favorite vs away-favorite calibration.
 
-    The model maps market ML win prob → recalibrated win prob via:
-        z     = log(p / (1 - p))           (logit transform)
-        z_cal = slope * z + intercept      (linear correction on logit scale)
-        p_cal = 1 / (1 + exp(-z_cal))      (back to probability)
+    The model maps market ML win prob → true win prob via:
+        z     = logit(p_market)
+        z_cal = slope * z + intercept   (per location)
+        p_cal = expit(z_cal)
 
-    Interpretation:
-    * slope > 1 — market hedges toward 50% (long-shot bias); recalibration
-      stretches probabilities outward toward the extremes.
-    * intercept ≈ 0 — no systematic directional bias.
+    Slopes are fit once on the full sample. Intercepts vary by season config
+    file when using centered-window training labels.
     '''
-    slope: float
-    intercept: float
+    slopes: Dict[str, float]
+    intercepts: Dict[str, float]
+    fit: Optional[Dict[str, Any]] = None
 
-    def to_dict(self) -> Dict[str, float]:
-        '''Serialize to dictionary'''
-        return {'slope': self.slope, 'intercept': self.intercept}
+    def to_dict(self) -> Dict[str, Any]:
+        out: Dict[str, Any] = {
+            'slopes': {k: float(v) for k, v in self.slopes.items()},
+            'intercepts': {k: float(v) for k, v in self.intercepts.items()},
+        }
+        if self.fit is not None:
+            fit = dict(self.fit)
+            if 'seasons_used' in fit:
+                fit['seasons_used'] = [int(s) for s in fit['seasons_used']]
+            if 'label_season' in fit:
+                fit['label_season'] = int(fit['label_season'])
+            out['fit'] = fit
+        return out
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'PlattParams':
-        '''Deserialize from dictionary'''
-        return cls(slope=float(data['slope']), intercept=float(data['intercept']))
+    def from_dict(cls, data: Dict[str, Any]) -> 'SplitPlattParams':
+        return cls(
+            slopes={k: float(v) for k, v in data['slopes'].items()},
+            intercepts={k: float(v) for k, v in data['intercepts'].items()},
+            fit=data.get('fit'),
+        )
+
+
+## backward alias for diagnostics that reference a single param record ##
+PlattParams = SplitPlattParams
 
 
 @dataclass
 class CalibrationResult:
     '''
     Diagnostic output from fitting or evaluating a Recalibrator.
-
-    Contains the fitted parameters alongside before/after quality metrics,
-    making it easy to verify that recalibration improves rather than hurts fit.
-    Positive improvement values indicate the calibrated model is better.
     '''
-    params: PlattParams
+    params: SplitPlattParams
     n_games: int
     log_loss_before: float
     log_loss_after: float
@@ -53,18 +65,19 @@ class CalibrationResult:
 
     @property
     def log_loss_improvement(self) -> float:
-        '''Reduction in log loss after recalibration (positive = better)'''
         return self.log_loss_before - self.log_loss_after
 
     @property
     def brier_improvement(self) -> float:
-        '''Reduction in Brier score after recalibration (positive = better)'''
         return self.brier_before - self.brier_after
 
     def summary(self) -> str:
-        '''Human-readable summary of calibration quality'''
         lines = [
-            f'PlattParams: slope={self.params.slope:.4f}  intercept={self.params.intercept:.4f}',
+            'SplitPlattParams:',
+            f'  slopes:     home={self.params.slopes["home"]:.4f}  '
+            f'away={self.params.slopes["away"]:.4f}',
+            f'  intercepts: home={self.params.intercepts["home"]:+.4f}  '
+            f'away={self.params.intercepts["away"]:+.4f}',
             f'n_games={self.n_games:,}',
             f'Log loss:  {self.log_loss_before:.6f} → {self.log_loss_after:.6f}'
             f'  (Δ={self.log_loss_improvement:+.6f})',

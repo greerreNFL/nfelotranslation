@@ -26,7 +26,7 @@ from nfelotranslation.Distribution.Base import BaseDistribution
 from nfelotranslation.Distribution.Key.KeyModel import KeyModel
 from nfelotranslation.Utilities.JsonIo import ConfigMetadata
 from nfelotranslation.Utilities.ValidationTypes import ValidationReport
-from nfelotranslation.SpreadMap.SpreadMapper import load_mapper_pair
+from nfelotranslation.SpreadMap.SpreadMapper import SpreadMapper
 from training.Seasonal import SeasonalDiagnostics, SeasonalFitter
 
 from nfelotranslation.Distribution.Key import KEY_MODEL_PARAMS as _DEFAULT_PARAMS
@@ -263,11 +263,11 @@ class KeyModelFitter(SeasonalFitter):
                 f'Run RecalibratorFitter(pipeline_id={self._pipeline_id!r}).fit() '
                 f'and reset DataLoader before fitting the KeyModel.'
             )
-        _, _, sm_metadata = load_mapper_pair()
-        if sm_metadata.pipeline_id != self._pipeline_id:
+        sm = SpreadMapper.from_file()
+        if sm.metadata.pipeline_id != self._pipeline_id:
             raise RuntimeError(
                 f'Upstream SpreadMapper pipeline_id mismatch: '
-                f'expected {self._pipeline_id!r}, got {sm_metadata.pipeline_id!r}. '
+                f'expected {self._pipeline_id!r}, got {sm.metadata.pipeline_id!r}. '
                 f'Run SpreadMapperFitter(pipeline_id={self._pipeline_id!r}).fit() '
                 f'before fitting the KeyModel.'
             )

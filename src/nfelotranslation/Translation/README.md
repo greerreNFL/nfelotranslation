@@ -1,41 +1,38 @@
 # Translation
 
-Top-level user-facing API. Composes the Recalibrator, SpreadMappers, and MarginDistributionModel into a single stateful object that produces every derived translation quantity from one input.
+Top-level user-facing API. Composes the SpreadMapper and MarginDistributionModel into a single stateful object that produces every derived translation quantity from one input.
 
 ## Why it exists
 
-The other modules in this package each operate in their own input space: the `Recalibrator` works on win probabilities, the `SpreadMapper` works on `(win_prob, spread)` pairs, and the `MarginDistributionModel` works on `(spread, win_prob)` pairs. A consumer of the package typically starts from one of four inputs — a market moneyline implied win probability, a market posted spread, a true (calibrated) win probability, or a true spread — and needs all of the others, plus the full margin distribution, in a coherent set.
+The other modules in this package each operate in their own input space: the `SpreadMapper` works on `(win_prob, spread)` pairs, and the `MarginDistributionModel` works on `(spread, win_prob)` pairs. A consumer of the package typically starts from a model win probability or a model spread and needs the full margin distribution in a coherent set.
 
-The Translator is the layer that picks the right starting point, runs the relevant primitives in the right order, and exposes every quantity as a property on a single object. Two callers handing it different but equivalent inputs (e.g. a market spread and the corresponding market WP) will read the same values back from every property.
+The Translator is the layer that resolves the input to an internal home-perspective model win probability, runs the relevant primitives in the right order, and exposes every quantity as a property on a single object. Recalibration is a training primitive only — it is not composed into the Translator because applying market-derived corrections at inference would inject information not knowable at prediction time.
 
 ## Input types
 
-The constructor takes a numeric value and an `input_type`. The four valid types and their resolution paths to the internal home-perspective calibrated win probability:
+The constructor takes a numeric value and an `input_type`. The two valid types and their resolution paths to the internal home-perspective model win probability:
 
 | `input_type` | Resolution |
 |---|---|
-| `'win_prob'` | value is treated as the calibrated WP. |
-| `'market_win_prob'` | `Recalibrator.calibrate(value)`. |
-| `'spread'` | `model_mapper.spread_to_win_prob(value)`. |
-| `'market_spread'` | `market_mapper.spread_to_win_prob(value)` → `Recalibrator.calibrate(market_wp)`. |
+| `'win_prob'` | value is treated as the model WP (home perspective if `side='home'`, away perspective flipped if `side='away'`). |
+| `'spread'` | `SpreadMapper.spread_to_win_prob(value)`. |
 
-All other properties on the Translator are computed from this internal calibrated WP, so the result is the same regardless of which input space the user started in.
+All other properties on the Translator are computed from this internal model WP.
 
 ## Sign convention and `side`
 
-Inputs and outputs use the convention that a **positive spread means the home team is favored**, and a calibrated or market WP greater than `0.5` means the home team is favored. Sportsbook feeds usually display favorites as negative spreads; callers reading raw sportsbook data must negate before passing in.
+Inputs and outputs use the convention that a **positive spread means the home team is favored**, and a model WP greater than `0.5` means the home team is favored. Sportsbook feeds usually display favorites as negative spreads; callers reading raw sportsbook data must negate before passing in.
 
-The `side` parameter (`'home'` or `'away'`) controls only which perspective the four sign-flipping properties report from: `win_prob`, `win_prob_market`, `spread`, `market_spread`. With `side='away'`, those four properties return the away-perspective values (away WP, sign-flipped spreads).
+The `side` parameter (`'home'` or `'away'`) controls only which perspective the two sign-flipping properties report from: `win_prob` and `spread`. With `side='away'`, those properties return the away-perspective values (away WP, sign-flipped spread).
 
-The fixed-perspective properties — `home_win_prob`, `away_win_prob`, `home_win_prob_market`, `away_win_prob_market` — always report their named side regardless of `side`. The discrete distribution and its derived quantities — `pmf`, `tie_prob`, `expected_margin`, `cover_prob(line)`, `push_prob(line)` — are always reported from the home perspective.
+The fixed-perspective properties — `home_win_prob`, `away_win_prob` — always report their named side regardless of `side`. The discrete distribution and its derived quantities — `pmf`, `tie_prob`, `expected_margin`, `cover_prob(line)`, `push_prob(line)` — are always reported from the home perspective.
 
 ## Per-season configs
 
 Because aspects like the key numbers and spread mapping are non-stationary, the Translator takes a `season` argument so each translation uses only configs trained on data available at that season. This matters for backtesting and for capturing non-stationary effects.
 
-- **SpreadMappers** — loaded via `SpreadMapper.from_file(MapType.X, season=season)`. The class handles seasonal resolution.
+- **SpreadMapper** — loaded via `SpreadMapper.from_file(season=season)`. The class handles seasonal resolution.
 - **KeyModel** — loaded via `KeyModel.from_file(season=season, params=KEY_MODEL_PARAMS)`. The class handles seasonal resolution.
-- **Recalibrator** — single static fit loaded via `Recalibrator.from_file()`; no per-season indexing.
 
 Both seasonal classes share the same resolution rule, implemented at the model class level (no longer in the Translator):
 
@@ -49,23 +46,21 @@ Both seasonal classes share the same resolution rule, implemented at the model c
               value, input_type, season, side
                             ↓
      ┌────── load per-season models for the season ──────┐
-     │   Recalibrator (static), SpreadMappers, KeyModel  │
-     └─────────────────────┬──────────────────────────────┘
+     │              SpreadMapper, KeyModel               │
+     └─────────────────────┬─────────────────────────────┘
                            ↓
-              resolve input → home calibrated WP
+              resolve input → home model WP
                            ↓
-    ┌──────────────────────┼──────────────────────┐
-    ↓                      ↓                      ↓
-[SpreadMappers]      [Recalibrator           [MarginDistributionModel]
-  win_prob_to_         .uncalibrate            (Base + Key + Normalizer)
-  spread, both          → home market WP)
-  instances)
-    ↓                      ↓                      ↓
- model spread,         home & away          MarginDistribution
- market spread         market WPs           (PMF, cover_prob,
-                                             push_prob,
-                                             expected_margin)
-    └──────────────────────┼──────────────────────┘
+              ┌────────────┴────────────┐
+              ↓                         ↓
+       [SpreadMapper]          [MarginDistributionModel]
+        win_prob_to_spread       (Base + Key + Normalizer)
+              ↓                         ↓
+         model spread            MarginDistribution
+                                  (PMF, cover_prob,
+                                   push_prob,
+                                   expected_margin)
+              └────────────┬────────────┘
                            ↓
                   Translator state
         (side flips spread / WP pairs as documented above)
@@ -79,16 +74,15 @@ Properties are computed eagerly inside `__init__` and `update`. Subsequent prope
 from nfelotranslation import Translator
 
 ## convention: positive spread = home favorite ##
-t = Translator(3.0, 'market_spread', season=2025, side='home')
+t = Translator(3.0, 'spread', season=2025, side='home')
 
-t.win_prob              ## calibrated WP from input side
+t.win_prob              ## model WP from input side
 t.spread                ## model Spread (posted + continuous)
-t.market_spread         ## market Spread
 t.cover_prob(3.0)       ## P(margin > 3) from home perspective
 t.pmf                   ## ndarray (151,)
 
 ## reuse loaded models, recompute state ##
-t.update(7.0, 'market_spread')
+t.update(7.0, 'spread')
 ```
 
 ## Modules
@@ -102,15 +96,12 @@ Stateful translator. Loads all season-specific models once on construction and r
 
 **Core properties** (perspective controlled by `side`):
 
-- `win_prob` — calibrated WP.
-- `win_prob_market` — market (uncalibrated) WP.
+- `win_prob` — model WP.
 - `spread` — model-derived `Spread`.
-- `market_spread` — market-derived `Spread`.
 
 **Side-fixed properties** (always from the named side):
 
-- `home_win_prob`, `away_win_prob` — calibrated WPs.
-- `home_win_prob_market`, `away_win_prob_market` — market WPs.
+- `home_win_prob`, `away_win_prob` — model WPs.
 
 **Distribution properties** (always from the home perspective):
 

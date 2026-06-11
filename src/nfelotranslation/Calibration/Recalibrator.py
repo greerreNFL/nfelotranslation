@@ -1,123 +1,154 @@
 '''
-Recalibrator — Platt / logit-linear recalibration of market ML win probabilities.
+Recalibrator — split Platt recalibration of market ML win probabilities.
+
+Used to derive true win probabilities for training labels and retrospective
+analysis. Not composed into the inference Translator.
 '''
 
 ## built-ins ##
 import pathlib
-from typing import Optional
+from typing import Optional, Union
 
 ## external ##
 import numpy
 
 ## local ##
-from .Types import PlattParams
+from .Types import SplitPlattParams
 from ..Utilities.JsonIo import (
     ConfigMetadata,
+    find_config_path,
     read_config_envelope,
     write_config_envelope,
 )
-from ..Utilities.MathUtils import logit, expit
+from ..Utilities.MathUtils import logit, expit, clip_prob
 
 
-## default path for persisted Platt parameters ##
 _STATE_PATH: pathlib.Path = pathlib.Path(__file__).parent / 'platt_params.json'
+_CONFIG_DIR: pathlib.Path = pathlib.Path(__file__).parent / 'configs'
+_CONFIG_PREFIX: str = 'platt_params'
 
 
 class Recalibrator:
     '''
-    Applies Platt / logit-linear recalibration to market ML win probabilities.
+    Split Platt recalibration: home favorites and away favorites use
+    separate intercepts; slopes are shared structural parameters.
 
-    Corrects the systematic miscalibration observed in NFL betting markets:
-    the market overestimates slight favorites (~55–65%) and underestimates
-    big favorites (>80%).
+        z     = logit(p_market)
+        p_cal = expit(a_loc * z + b_loc)
 
-    The recalibration model:
-    * z = logit(p_market)
-    * z_cal = slope * z + intercept
-    * p_cal = expit(z_cal)
-
-    Usage:
-        rec = Recalibrator.from_file()
-        calibrated = rec.calibrate(new_win_probs)
-        rec.to_file()
+    Parameters:
+    * params: SplitPlattParams (slopes + intercepts for home/away)
+    * metadata: ConfigMetadata from the training run
     '''
 
     def __init__(
         self,
-        params: PlattParams,
+        params: SplitPlattParams,
         metadata: Optional[ConfigMetadata] = None,
     ):
-        '''
-        Initialize with parameters.
-
-        Parameters:
-        * params: PlattParams (slope, intercept)
-        * metadata: ConfigMetadata describing the training run that
-          produced these params (defaults to an empty record)
-        '''
         self.params = params
         self.metadata = metadata or ConfigMetadata()
 
-    ## ==================== Public Interface ==================== ##
-
-    def calibrate(self, win_prob: numpy.ndarray) -> numpy.ndarray:
+    def calibrate(
+        self,
+        win_prob: numpy.ndarray,
+        is_home_fav: Optional[Union[numpy.ndarray, bool]] = None,
+    ) -> numpy.ndarray:
         '''
-        Apply recalibration to an array of market ML win probabilities.
+        Apply recalibration to market ML win probabilities.
 
         Parameters:
-        * win_prob: market-implied win probabilities in [0, 1]; any side
-          (home, away, favorite) — caller is responsible for consistency
+        * win_prob: probabilities in (0, 1). When ``is_home_fav`` is omitted,
+          each value is treated as home-perspective WP and location is inferred
+          as home favorite when wp >= 0.5.
+        * is_home_fav: optional bool or array — True for home favorites.
+          When provided, ``win_prob`` must be from the favorite's perspective.
 
         Returns:
-        * recalibrated win probabilities in (0, 1)
+        * recalibrated win probabilities in (0, 1), same perspective as input
         '''
-        z = logit(numpy.asarray(win_prob, dtype=float))
-        return expit(self.params.slope * z + self.params.intercept)
+        wp = clip_prob(numpy.asarray(win_prob, dtype=float))
+        z = logit(wp)
+        if is_home_fav is None:
+            home_fav = wp >= 0.5
+        else:
+            home_fav = numpy.asarray(is_home_fav, dtype=bool)
+        a = numpy.where(home_fav, self.params.slopes['home'], self.params.slopes['away'])
+        b = numpy.where(
+            home_fav,
+            self.params.intercepts['home'],
+            self.params.intercepts['away'],
+        )
+        return expit(a * z + b)
 
-    def uncalibrate(self, cal_wp: numpy.ndarray) -> numpy.ndarray:
+    def uncalibrate(
+        self,
+        cal_wp: numpy.ndarray,
+        is_home_fav: Optional[Union[numpy.ndarray, bool]] = None,
+    ) -> numpy.ndarray:
         '''
-        Invert the Platt recalibration to recover market win probabilities.
+        Invert split Platt recalibration.
 
         Parameters:
-        * cal_wp: calibrated win probabilities in (0, 1)
+        * cal_wp: recalibrated win probabilities in (0, 1)
+        * is_home_fav: same convention as ``calibrate``
 
         Returns:
         * market-implied win probabilities in (0, 1)
         '''
-        z_cal = logit(numpy.asarray(cal_wp, dtype=float))
-        return expit((z_cal - self.params.intercept) / self.params.slope)
+        p = clip_prob(numpy.asarray(cal_wp, dtype=float))
+        z_cal = logit(p)
+        if is_home_fav is None:
+            home_fav = p >= 0.5
+        else:
+            home_fav = numpy.asarray(is_home_fav, dtype=bool)
+        a = numpy.where(home_fav, self.params.slopes['home'], self.params.slopes['away'])
+        b = numpy.where(
+            home_fav,
+            self.params.intercepts['home'],
+            self.params.intercepts['away'],
+        )
+        return expit((z_cal - b) / a)
 
     def to_file(self, filepath: Optional[str] = None) -> None:
-        '''
-        Persist fitted parameters to JSON (defaults to package state path)
-        '''
         path = str(filepath) if filepath is not None else str(_STATE_PATH)
         write_config_envelope(path, self.params.to_dict(), self.metadata)
 
-    ## ==================== Factory Methods ==================== ##
+    @classmethod
+    def from_params(
+        cls,
+        slope_home: float,
+        slope_away: float,
+        intercept_home: float,
+        intercept_away: float,
+        fit: Optional[dict] = None,
+    ) -> 'Recalibrator':
+        return cls(
+            SplitPlattParams(
+                slopes={'home': slope_home, 'away': slope_away},
+                intercepts={'home': intercept_home, 'away': intercept_away},
+                fit=fit,
+            )
+        )
 
     @classmethod
-    def from_params(cls, slope: float, intercept: float) -> 'Recalibrator':
-        '''
-        Construct from known parameter values (e.g., loaded from a prior fit).
-
-        Parameters:
-        * slope: logit-linear slope coefficient
-        * intercept: logit-linear intercept
-        '''
-        return cls(PlattParams(slope=slope, intercept=intercept))
-
-    @classmethod
-    def from_file(cls, filepath: Optional[str] = None) -> 'Recalibrator':
-        '''
-        Load a previously fitted Recalibrator from JSON (defaults to package state path)
-
-        Parameters:
-        * filepath: override path (defaults to package state path)
-
-        Returns:
-        * Recalibrator initialized with the stored parameters and metadata
-        '''
-        path = str(filepath) if filepath is not None else str(_STATE_PATH)
+    def from_file(
+        cls,
+        filepath: Optional[str] = None,
+        *,
+        season: Optional[int] = None,
+    ) -> 'Recalibrator':
+        if filepath is not None:
+            path = str(filepath)
+        elif season is not None:
+            resolved = find_config_path(_CONFIG_PREFIX, season, str(_CONFIG_DIR))
+            if resolved is None:
+                raise FileNotFoundError(
+                    f'No {_CONFIG_PREFIX} config available for season {season} '
+                    f'or any earlier season under {_CONFIG_DIR}'
+                )
+            path = resolved
+        else:
+            path = str(_STATE_PATH)
         payload, metadata = read_config_envelope(path)
-        return cls(PlattParams.from_dict(payload), metadata=metadata)
+        return cls(SplitPlattParams.from_dict(payload), metadata=metadata)

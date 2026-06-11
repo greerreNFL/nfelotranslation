@@ -65,8 +65,8 @@ PYTHONPATH=. python -m training.Scripts
 This runs `training/Scripts/__init__.py:train_all()`, which executes the
 full pipeline in dependency order:
 
-1. **Recalibrator** — fits Platt scaling params (slope, intercept)
-2. **SpreadMapper** — fits linear-in-logit wp-to-spread mappings (model + market)
+1. **Recalibrator** — fits split Platt params (omniscient home/away slopes, per-season intercepts)
+2. **SpreadMapper** — fits linear-in-logit wp-to-spread mapping on recalibrated win probabilities vs actual margins
 3. **KeyModel** — updates all 40 credibility-weighted ratio trackers per season
 4. **Distribution validation** — system-level integration check (SAE, bias)
 
@@ -129,7 +129,7 @@ install picks them up immediately:
 
 | Component | Root config | Per-season configs |
 |-----------|------------|-------------------|
-| Recalibrator | `src/nfelotranslation/Calibration/platt_params.json` | — |
+| Recalibrator | `src/nfelotranslation/Calibration/platt_params.json` | `Calibration/configs/` |
 | SpreadMapper | `src/nfelotranslation/SpreadMap/spread_map_params.json` | `SpreadMap/configs/` |
 | KeyModel | `src/nfelotranslation/Distribution/Key/key_model.json` | `Distribution/Key/configs/` |
 
@@ -142,14 +142,10 @@ component's folder.
 
 #### When to retrain
 
-Each offseason, retrain on all available data. Both mappers are fit
-seasonally with separate decay rates: the model mapper uses flat weighting
-(`decay = 0.0`) because the WP → margin relationship is structural, while
-the market mapper uses exponential decay (`decay = 0.15`) because the
-market evolves over time. The model mapper fits on recalibrated win
-probabilities (`ml_wp_cal`) so it maps "true" probability to outcome-
-derived spread. The market mapper fits on raw market win probabilities
-(`ml_wp_close`) so it captures the market's own spread ↔ WP relationship.
+Each offseason, retrain on all available data. The mapper is fit
+seasonally with flat weighting (`decay = 0.0`) because the WP → margin
+relationship is structural. It fits on recalibrated win probabilities
+(`ml_wp_cal`) against actual game margins, with intercept fixed at zero.
 
 #### How to retrain
 
@@ -174,32 +170,21 @@ These point-in-time snapshots support backtesting of downstream consumers.
 
 Validation answers two core questions:
 
-1. Does the model mapper produce a true median spread?
-2. Does the market mapper accurately recover posted spreads from win probabilities?
+1. Does the mapper produce a true median spread?
+2. Does the parametric form track empirical bin medians of actual margins?
 
-Secondary: do the two mappers relate to each other as expected?
-
-**Model mapper quality.** The model mapper converts a win probability
+**Mapper quality.** The SpreadMapper converts a win probability
 into a predicted spread by fitting against actual game margins under MAE
 loss. A "good spread" is a median: 50% of margins land above it. The
-bisection rate measures this directly. The model MAE (~10.2 points)
+bisection rate measures this directly. The MAE (~10.2 points)
 looks large but reflects NFL margin unpredictability (σ ≈ 13 points) —
 the model is finding the distribution center, not predicting individual
 games.
 
-**Market mapper quality.** The market mapper fits against market-posted
-lines using raw market win probabilities (`ml_wp_close`). Its quality is
-measured by the reverse traverse: market WP → market mapper → predicted
-spread vs actual posted spread. The per-game MAE (~0.5 points) must be
-read against a baseline: even a perfect model cannot beat the irreducible
-scatter in the WP → spread relationship (games at the same WP have
-different posted spreads). The baseline MAE (~0.29 points, computed as
-the median spread within each 0.5%-WP bin) represents that noise floor.
-
-**Spread gap (market vs model).** The spread gap (market spread minus
-model spread at a given WP) measures how far the market sits from the
-outcome-derived median. The gap is tracked at WP = 70% as a representative
-point.
+**Binned fit quality.** `binned_r2` and `binned_mae` compare the mapper
+to pooled empirical medians of actual margins within fine WP bins. This
+measures parametric misfit against realized outcomes, not posted market
+lines.
 
 #### Gated checks
 
@@ -207,38 +192,26 @@ point.
 |------------------------------|------------------|------------------|
 | `slope_positive`             | > 0              | Higher win probability must map to a larger predicted margin. |
 | `bisection_rate_centered`    | \|rate − 0.5\| < 0.05 | Aggregate OOS fraction of game margins above the predicted spread. |
-| `market_roundtrip_r2`        | > 0.98           | Aggregate OOS R² for market WP → mapper → spread vs posted spread. |
 
 #### Tracked metrics
 
 | Metric                        | What it measures                                                              | What to expect            |
 |-------------------------------|-------------------------------------------------------------------------------|---------------------------|
-| `model_mae`                   | OOS MAE: model spread vs actual margin. Reflects margin unpredictability.     | ~10.2 pts                 |
-| `model_bisection`             | OOS bisection rate. Confirms MAE produces a true median.                      | ~0.500                    |
-| `market_mae`                  | OOS MAE: market mapper vs posted line (per-game).                             | ~0.50 pts                 |
-| `market_r2`                   | OOS R² for market round-trip.                                                 | ~0.988                    |
-| `market_baseline_ratio`       | Per-game MAE ÷ bin-median oracle MAE. 1.0 = at noise floor.                   | ~1.7                      |
-| `market_binned_r2`            | R² of mapper predictions vs empirical bin medians (pooled).                   | ~0.994                    |
-| `market_binned_mae`           | MAE of mapper predictions vs bin medians. Parametric misfit.                  | ~0.37 pts                 |
-| `model_slope` / `market_slope`| Final slope for each mapper.                                                  | Model ~6.15, market ~7.07 |
-| `model_mae_trend`             | Linear trend in per-season model MAE. Flat = stable.                          | Slightly negative         |
-| `market_mae_trend`            | Linear trend in per-season market MAE.                                        | Near 0                    |
-| `spread_gap_wp70`             | Market spread − model spread at WP = 70% (latest season).                     | Positive, ~0.6 pts        |
-| `spread_gap_wp70_trend`       | Linear trend in the WP = 70% gap.                                             | Negative (gap shrinking)  |
+| `mae`                         | OOS MAE: predicted spread vs actual margin. Reflects margin unpredictability.  | ~10.2 pts                 |
+| `bisection`                   | OOS bisection rate. Confirms MAE produces a true median.                      | ~0.502                    |
+| `binned_r2`                   | R² of mapper predictions vs empirical bin medians of actual margins (pooled). | ~0.81                     |
+| `binned_mae`                  | MAE of mapper predictions vs bin medians. Parametric misfit.                  | ~2.0 pts                  |
+| `slope`                       | Final slope (intercept fixed at 0).                                             | ~6.52                     |
+| `mae_trend`                   | Linear trend in per-season MAE. Flat = stable.                                  | Slightly negative         |
 
 #### What to watch for
 
 - **Bisection rate drifting from 0.5** — the single most important check.
   If the MAE-fitted model stops producing a true median, the loss
   function or the data filter may need attention.
-- **Market R² dropping below 0.98** — would indicate the parametric form
-  no longer captures the WP → spread relationship.
-- **Market baseline ratio increasing** — the model is getting worse
-  relative to the noise floor.
-- **Spread gap at WP = 70% going negative** — would mean the model
-  overvalues favorites more than the market, opposite of the historical
-  pattern.
-- **Model slope trending** — would indicate the WP → spread relationship
+- **Binned R² collapsing** — would indicate the parametric form no longer
+  tracks empirical margin medians across the WP range.
+- **Slope trending** — would indicate the WP → spread relationship
   is shifting over time (e.g. from scoring-era changes).
 
 ### Key

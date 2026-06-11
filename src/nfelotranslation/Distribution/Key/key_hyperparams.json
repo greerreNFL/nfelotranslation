@@ -1,11 +1,11 @@
 {
     "metadata": {
-        "pipeline_id": null,
-        "generated_at": null
+        "pipeline_id": "628c245d",
+        "generated_at": "2026-06-11T17:02:31+00:00"
     },
     "params": {
-        "forgetting_rate": 0.087,
-        "threshold": 25,
+        "forgetting_rate": 0.04,
+        "threshold": 15,
         "initial_prior_size": 52
     }
 }

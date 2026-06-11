@@ -87,9 +87,18 @@ class DataLoader:
             games.loc[ml_valid, 'away_moneyline'].values,
         )
         games.loc[ml_valid, 'ml_wp_close'] = h_wp
-        ## recalibrated win probability ##
-        rec = Recalibrator.from_file()
-        games.loc[ml_valid, 'ml_wp_cal'] = rec.calibrate(
-            games.loc[ml_valid, 'ml_wp_close'].values
-        )
+        ## recalibrated win probability (favorite-side split Platt) ##
+        home_wp = games.loc[ml_valid, 'ml_wp_close'].values.astype(float)
+        home_is_fav = home_wp >= 0.5
+        fav_wp = numpy.where(home_is_fav, home_wp, 1.0 - home_wp)
+        cal_fav = numpy.full(len(fav_wp), numpy.nan)
+        for season in sorted(games.loc[ml_valid, 'season'].unique()):
+            season_mask = games.loc[ml_valid, 'season'].values == season
+            rec = Recalibrator.from_file(season=int(season))
+            cal_fav[season_mask] = rec.calibrate(
+                fav_wp[season_mask],
+                is_home_fav=home_is_fav[season_mask],
+            )
+        home_cal = numpy.where(home_is_fav, cal_fav, 1.0 - cal_fav)
+        games.loc[ml_valid, 'ml_wp_cal'] = home_cal
         return games

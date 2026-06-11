@@ -14,7 +14,7 @@ By tracking individual integers using a credibility-weighted model, key numbers 
 
 ### The excess is real, and generally stable
 
-Across 5,011 games (2006–2025), the excess rate at each integer is the share of games landing on `±k` minus the share predicted by the gennorm baseline at `beta = 1.35`. The CV column is the across-season `|std / mean|` over 20 seasons:
+Across 5,011 games (2006–2025), the excess rate at each integer is the share of games landing on `±k` minus the share predicted by the gennorm baseline at the shipped shape parameter (`beta = 1.24`; see `margin_hyperparams.json`). The CV column is the across-season `|std / mean|` over 20 seasons:
 
 | k | Excess rate | Ratio | CV (per-season) |
 |---:|---:|---:|---:|

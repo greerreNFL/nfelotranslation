@@ -7,8 +7,7 @@ the model's predicted margin frequencies and actual margin frequencies
 when aggregated across all games in the dataset.
 
 Fixed components (loaded once, independent of hyperparams):
-    - Recalibrator (Platt scaling)
-    - SpreadMapper pair (model + market)
+    - SpreadMapper
     - Actual outcome histogram
     - Per-spread (model_spread, cal_wp, count) groups
     - Per-season training data (hits, baselines, n_games)
@@ -23,15 +22,16 @@ from typing import Any, Dict, List, Optional, Tuple
 
 ## external ##
 import numpy
+import pandas
 from scipy.optimize import minimize
 from scipy.stats import norm as scipy_norm
 
 ## local ##
-from nfelotranslation.Calibration.Recalibrator import Recalibrator
+from nfelotranslation.SpreadMap.SpreadMapper import SpreadMapper
 from nfelotranslation.Distribution import MARGIN_HYPERPARAMS
 from nfelotranslation.Distribution.Key import KeyModel, KEY_MODEL_PARAMS
 from nfelotranslation.Distribution.MarginDistributionModel import MarginDistributionModel
-from nfelotranslation.SpreadMap.SpreadMapper import load_mapper_pair
+from nfelotranslation.SpreadMap.SpreadMapper import SpreadMapper
 from training.Data import DataLoader
 
 
@@ -74,7 +74,7 @@ class HyperparamOptimizer:
         self._per_season_actual = self._compute_per_season_actual_counts()
         ## aggregate over OOS seasons — useful for diagnostics, NOT the objective ##
         self._actual_counts = sum(self._per_season_actual.values(), numpy.zeros(151))
-        self._recalibrator, self._model_mapper, self._market_mapper = self._load_fixed_models()
+        self._mapper = self._load_mapper()
         self._per_season_spread_groups = self._compute_per_season_spread_groups()
         self._season_data = self._compute_season_data()
         ## iteration tracking ##
@@ -224,31 +224,29 @@ class HyperparamOptimizer:
             result[int(season)] = counts
         return result
 
-    def _load_fixed_models(self):
-        '''Load Recalibrator and SpreadMapper pair (root configs).'''
-        rec = Recalibrator.from_file()
-        model_mapper, market_mapper, _ = load_mapper_pair()
-        return rec, model_mapper, market_mapper
+    def _load_mapper(self):
+        '''Load root SpreadMapper config.'''
+        return SpreadMapper.from_file()
 
     def _compute_per_season_spread_groups(self):
         '''
         For each season, list of (model_spread, cal_wp, count) groups.
-        Keyed by season so per-season OOS prediction can aggregate only
-        the seasons it needs without double-counting.
+        Uses training labels (ml_wp_cal) and the fitted SpreadMapper.
         '''
         per_season = {}
         for season, season_games in self._games.groupby('season'):
-            groups = []
-            for spread_val, grp in season_games.groupby('spread_line'):
-                market_wp = float(self._market_mapper.spread_to_win_prob(float(spread_val)))
-                cal_wp = float(self._recalibrator.calibrate(numpy.array([market_wp]))[0])
-                model_spread = self._model_mapper.win_prob_to_spread(cal_wp)
-                groups.append({
-                    'model_spread': float(model_spread.continuous),
-                    'cal_wp': cal_wp,
-                    'count': len(grp),
-                })
-            per_season[int(season)] = groups
+            groups = {}
+            for _, row in season_games.iterrows():
+                if pandas.isna(row.get('ml_wp_cal')):
+                    continue
+                cal_wp = float(row['ml_wp_cal'])
+                model_spread = self._mapper.win_prob_to_spread(cal_wp)
+                key = (float(model_spread.continuous), cal_wp)
+                groups[key] = groups.get(key, 0) + 1
+            per_season[int(season)] = [
+                {'model_spread': ms, 'cal_wp': wp, 'count': n}
+                for (ms, wp), n in groups.items()
+            ]
         return per_season
 
     def _compute_season_data(self):

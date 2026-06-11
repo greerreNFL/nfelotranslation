@@ -2,7 +2,7 @@
 
 ## Hypothesis
 
-Closing moneyline implied win probabilities are not perfectly calibrated to observed outcomes across the probability range. Specifically, the favorite-perspective implied probability tends to understate strong favorites and overstate mild favorites, producing a systematic error profile that a monotone recalibration can correct.
+Closing moneyline implied win probabilities are not perfectly calibrated to observed outcomes across the probability range. Specifically, the favorite-perspective implied probability tends to understate strong favorites and overstate mild favorites, producing a systematic error profile that a monotone recalibration can correct. The miscalibration may differ by favorite location (home vs away), requiring separate Platt slopes by location.
 
 ## Method
 
@@ -11,10 +11,12 @@ Closing moneyline implied win probabilities are not perfectly calibrated to obse
 3. Fold to favorite perspective: relabel each game so the favorite's implied probability is in `[0.5, 1.0]` and the target is "favorite won" in `{0, 1}`.
 4. Bin favorite implied probability using edges `[0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 1.00]` and compute the observed favorite win rate per bin with a 95% Wilson confidence interval.
 5. Summarize bias as the weighted mean absolute error across bins, weighting by bin count.
+6. Fit split Platt parameters on the full sample by favorite location: `p_cal = expit(a_loc * logit(p_market) + b_loc)` for home favorites and away favorites separately.
 
 Outputs (probabilities as floats in `[0, 1]`, four decimal places):
 
 - `output.csv` — per-bin counts, mean implied probability, observed rate, Wilson CI bounds, and signed error.
+- `output_split_platt.csv` — full-sample split Platt slope and intercept by favorite location.
 - `chart.png` — calibration curve with Wilson CIs (left) and signed bin-level error (right).
 
 ## Findings
@@ -41,6 +43,15 @@ Weighted MAE across bins: 0.0129.
 
 The direction of the error (understating the upper tail, overstating the mid-range) is consistent with a logit-linear slope greater than one applied to the raw implied probability.
 
+### Split Platt by favorite location (full sample)
+
+| Location | n | Slope (a) | Intercept (b) |
+|---|---:|---:|---:|
+| Home favorite | 3,410 | 1.2113 | -0.1971 |
+| Away favorite | 1,871 | 0.9726 | +0.0375 |
+
+Home favorites require a steeper slope (more de-compression toward the tails); away favorites are closer to identity. A pooled single-slope Platt model leaves residual location bias.
+
 ## Conclusion
 
-Closing moneyline implied probabilities are miscalibrated relative to observed outcomes, with a monotone shape that is well described by a two-parameter logit-linear transform. This is the empirical basis for including a Platt-scaling `Recalibrator` in the shipping package. Stationarity of this shape over time is examined in `2. Calibration Stationarity/`; candidate recalibration functional forms are compared in `3. Recalibration Method Comparison/`.
+Closing moneyline implied probabilities are miscalibrated relative to observed outcomes, with a monotone shape that is well described by a two-parameter logit-linear transform. Home and away favorites require separate slopes. The shipped `Recalibrator` uses split Platt scaling with omniscient slopes and season-indexed intercepts for training labels only; it is not composed into the inference `Translator`. Stationarity of these parameters over time is examined in `2. Calibration Stationarity/`; candidate recalibration functional forms are compared in `3. Recalibration Method Comparison/`.

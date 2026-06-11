@@ -25,7 +25,7 @@ if _pkg_root not in _sys.path:
 
 ## ==================== Re-export Public API ==================== ##
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 ## calibration ##
 from nfelotranslation.Calibration import PlattParams, CalibrationResult, Recalibrator
@@ -42,7 +42,7 @@ from nfelotranslation.Distribution import (
 from nfelotranslation.Utilities.JsonIo import find_config_path
 
 ## spread map ##
-from nfelotranslation.SpreadMap import MapType, LinearMapParams, Spread, SpreadMapResult, SpreadMapper
+from nfelotranslation.SpreadMap import LinearMapParams, Spread, SpreadMapResult, SpreadMapper
 
 ## translation ##
 from nfelotranslation.Translation import Translator
@@ -54,6 +54,6 @@ __all__ = [
     'Normalizer',
     'MarginDistribution', 'MarginDistributionModel',
     'find_config_path',
-    'MapType', 'LinearMapParams', 'Spread', 'SpreadMapResult', 'SpreadMapper',
+    'LinearMapParams', 'Spread', 'SpreadMapResult', 'SpreadMapper',
     'Translator',
 ]

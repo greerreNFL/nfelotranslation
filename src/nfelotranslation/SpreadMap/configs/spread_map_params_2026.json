@@ -1,16 +1,10 @@
 {
     "metadata": {
-        "pipeline_id": "8041f7ff",
-        "generated_at": "2026-05-09T06:09:44+00:00"
+        "pipeline_id": "628c245d",
+        "generated_at": "2026-06-11T17:02:11+00:00"
     },
     "params": {
-        "model": {
-            "slope": 6.150472265481949,
-            "intercept": 0.0
-        },
-        "market": {
-            "slope": 7.07105978433451,
-            "intercept": -0.0032480078243445477
-        }
+        "slope": 6.520022875070572,
+        "intercept": 0.0
     }
 }

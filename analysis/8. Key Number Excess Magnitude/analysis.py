@@ -45,7 +45,7 @@ setup_style()
 ## shipped Base shape parameter (margin_hyperparams.json).  Hard-coded here so the
 ## analysis tracks whatever was shipped at the time it was last run; the value is
 ## also reported in the output so the snapshot is self-describing. ##
-SHIPPED_BETA: float = 1.35
+SHIPPED_BETA: float = 1.24
 
 ## fallback scale for pickem games — same as BaseDistribution._FALLBACK_SCALE ##
 FALLBACK_SCALE: float = 13.2

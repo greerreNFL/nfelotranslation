@@ -1,0 +1,28 @@
+{
+    "metadata": {
+        "pipeline_id": "628c245d",
+        "generated_at": "2026-06-11T17:02:10+00:00"
+    },
+    "params": {
+        "slopes": {
+            "home": 1.2113610332924414,
+            "away": 0.9726744319165792
+        },
+        "intercepts": {
+            "home": -0.25013195800781274,
+            "away": 0.04501937866210939
+        },
+        "fit": {
+            "window_type": "centered",
+            "window_width": 5,
+            "seasons_used": [
+                2019,
+                2020,
+                2021,
+                2022,
+                2023
+            ],
+            "label_season": 2021
+        }
+    }
+}

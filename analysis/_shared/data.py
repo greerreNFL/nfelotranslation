@@ -150,12 +150,18 @@ def _derive_favorite_perspective(df: pandas.DataFrame) -> pandas.DataFrame:
     out.loc[fav_ml_mask, 'home_is_fav_ml'] = (
         out.loc[fav_ml_mask, 'ml_wp_close'] >= 0.5
     ).astype(int)
-    ## fold raw WP to favorite perspective, recalibrate, fold back ##
-    rec = Recalibrator.from_file()
+    ## fold raw WP to favorite perspective, recalibrate per season, fold back ##
     home_wp = out.loc[fav_ml_mask, 'ml_wp_close'].values
     home_is_fav = out.loc[fav_ml_mask, 'home_is_fav_ml'].values.astype(bool)
     fav_wp_raw = numpy.where(home_is_fav, home_wp, 1.0 - home_wp)
-    fav_wp_cal = rec.calibrate(fav_wp_raw)
+    fav_wp_cal = numpy.full(len(fav_wp_raw), numpy.nan)
+    for season in sorted(out.loc[fav_ml_mask, 'season'].unique()):
+        season_mask = out.loc[fav_ml_mask, 'season'].values == season
+        rec = Recalibrator.from_file(season=int(season))
+        fav_wp_cal[season_mask] = rec.calibrate(
+            fav_wp_raw[season_mask],
+            is_home_fav=home_is_fav[season_mask],
+        )
     out.loc[fav_ml_mask, 'fav_ml_wp'] = fav_wp_raw
     out.loc[fav_ml_mask, 'fav_wp_cal'] = fav_wp_cal
     out.loc[fav_ml_mask, 'ml_wp_cal'] = numpy.where(

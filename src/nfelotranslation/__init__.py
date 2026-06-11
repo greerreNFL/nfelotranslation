@@ -6,8 +6,10 @@ distributions, from which spread, cover probability, push probability, and
 expected value are derived coherently.
 
 Pipeline:
-    win_prob  →  [Recalibrator]  →  calibrated_wp
-    calibrated_wp  →  [MarginDistributionModel]  →  margin distribution
+    win_prob  →  [SpreadMapper]  →  spread
+    (spread, win_prob)  →  [MarginDistributionModel]  →  margin distribution
+
+Recalibration is training-only (see Calibration module).
     margin distribution  →  { spread, cover_prob, push_prob, EV }
 
 Because spread is derived as the median of the margin distribution rather
@@ -18,7 +20,7 @@ Model refitting and training pipelines live in the repository ``training/``
 package (not installed from PyPI by default).
 '''
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 ## calibration ##
 from .Calibration import PlattParams, CalibrationResult, Recalibrator
@@ -35,7 +37,7 @@ from .Distribution import (
 from .Utilities.JsonIo import find_config_path
 
 ## spread map ##
-from .SpreadMap import MapType, LinearMapParams, Spread, SpreadMapResult, SpreadMapper
+from .SpreadMap import LinearMapParams, Spread, SpreadMapResult, SpreadMapper
 
 ## translation ##
 from .Translation import Translator
@@ -59,7 +61,6 @@ __all__ = [
     ## persistence ##
     'find_config_path',
     ## spread map ##
-    'MapType',
     'LinearMapParams',
     'Spread',
     'SpreadMapResult',
