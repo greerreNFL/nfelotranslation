@@ -9,7 +9,6 @@ the continuous density, CDF, and survival function.
 Gaussian, ``beta<2`` produces heavier tails.  The shipped default is loaded
 from ``margin_hyperparams.json`` via ``MarginDistributionModel``.
 
-Spread is clamped to the nearest 0.5 grid on construction.
 '''
 
 ## built-ins ##
@@ -42,8 +41,6 @@ class BaseDistribution:
     (numerator or denominator → 0) and a fallback scale is used instead.
     The Normalizer enforces the wp constraint via region scaling regardless.
 
-    On construction, spread is clamped to the nearest 0.5 grid point.
-
     Parameters:
     * spread: point spread (positive = favorite)
     * win_prob: P(margin > 0) moneyline win probability
@@ -73,9 +70,8 @@ class BaseDistribution:
     ## ==================== Init ==================== ##
 
     def __post_init__(self):
-        ## clamp spread to nearest 0.5 ##
-        self.spread = round(self.spread * 2) / 2
         ## derive scale ##
+        ## handle degenerate case ##
         if abs(self.spread) < self._DEGEN_EPS or abs(self.win_prob - 0.5) < self._DEGEN_EPS:
             self.scale = self._FALLBACK_SCALE
         else:

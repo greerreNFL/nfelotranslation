@@ -151,6 +151,11 @@ class TestPickEm:
         assert not np.any(np.isnan(t.pmf))
         assert abs(t.pmf.sum() - 1.0) < PMF_SUM_TOL
 
+    def test_cover_prob_monotone_win_prob_input(self):
+        lo = Translator(0.4749, 'win_prob', season=2012, side='home')
+        hi = Translator(0.4889, 'win_prob', season=2012, side='home')
+        assert hi.cover_prob(-2.5) >= lo.cover_prob(-2.5)
+
 
 class TestValidation:
     def test_bad_input_type(self):

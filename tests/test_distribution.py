@@ -13,7 +13,7 @@
 ##   6. Region masses: loss_mass + win_mass = 1.0; win_mass = wp
 ##   7. CDF/SF consistency: cdf(x) + sf(x) = 1.0
 ##   8. PDF integration: pdf integrates to ~1.0 over wide range
-##   9. Spread clamping: non-grid spreads snap to nearest 0.5
+##   9. Continuous spread: non-grid input preserved as loc
 ##
 import pytest
 import numpy as np
@@ -243,26 +243,26 @@ class TestPDFIntegration:
 
 
 ## ============================================================
-## PROPERTY 9: spread clamping
+## PROPERTY 9: continuous spread preserved
 ## ============================================================
 
-class TestSpreadClamping:
-    '''Non-grid spreads are clamped to nearest 0.5.'''
+class TestContinuousSpread:
+    '''Non-grid spreads are kept continuous (not snapped to 0.5 grid).'''
 
     CASES = [
         (7.0, 7.0),
         (7.5, 7.5),
-        (7.2, 7.0),
-        (7.3, 7.5),
-        (7.8, 8.0),
-        (-3.3, -3.5),
-        (-3.1, -3.0),
+        (7.2, 7.2),
+        (7.3, 7.3),
+        (7.8, 7.8),
+        (-3.3, -3.3),
+        (-3.1, -3.1),
         (0.0, 0.0),
     ]
 
     @pytest.mark.parametrize('input_spread,expected', CASES)
-    def test_clamped(self, input_spread, expected):
+    def test_preserved(self, input_spread, expected):
         base = BaseDistribution(input_spread, 0.65)
         assert base.spread == expected, (
-            f'Spread {input_spread} should clamp to {expected}, got {base.spread}'
+            f'Spread {input_spread} should stay {expected}, got {base.spread}'
         )

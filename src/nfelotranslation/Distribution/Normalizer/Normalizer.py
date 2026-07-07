@@ -98,7 +98,8 @@ class Normalizer:
         * ndarray of shape (151,) — normalized PMF summing to 1
         '''
         pmf = dirty_pmf.copy()
-        s = self.base.spread
+        ## clamp spread so bisection aligns to a 0.5 grid ##
+        s = round(self.base.spread * 2) / 2
         wp = self.base.win_prob
         tp = self.tie_prob
         is_int = (s == round(s))

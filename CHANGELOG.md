@@ -1,8 +1,25 @@
 # Changelog
 
-All notable changes to this project are documented here.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+## [0.2.1] - 2026-07-07
+
+### Fixed
+
+- **`BaseDistribution` spread clamp** — removed construction-time rounding to the 0.5 grid. `Translator` and `MarginDistributionValidator` already pass `Spread.continuous`; clamping forced `loc` to grid while scale still depended on the continuous spread, breaking `(spread, win_prob) → scale` consistency and making `cover_prob(line)` non-monotone in `win_prob`. Win prob could increase while cover prob decreased depending on how the clamp impacted scale.
+
+### Changed
+
+- **`BaseDistribution`** — spread input is kept continuous for PDF center (`loc`) and scale derivation; degenerate fallback unchanged (`OR` guard on spread ≈ 0 or wp ≈ 0.5).
+- **`Normalizer`** — region bisection uses `round(base.spread × 2) / 2` (same rule as `Spread.posted`); continuous PDF is unchanged at evaluation time.
+- **`MarginDistribution.spread`** — still the grid bisection spread returned from `predict()` (not the internal continuous center).
+
+### Validation snapshot (post-fix, same pipeline `628c245d` configs)
+
+| Component | Key metric | Value |
+|-----------|------------|------:|
+| Margin distribution | OOS SAE | 11.2% (488 / 4,363 games) |
+| Margin distribution | Tail bias | −5.5% |
+| Margin distribution | Close bias | +0.2% |
 
 ## [0.2.0] - 2026-06-11
 

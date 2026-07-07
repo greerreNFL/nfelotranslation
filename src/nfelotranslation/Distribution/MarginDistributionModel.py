@@ -69,7 +69,7 @@ class MarginDistributionModel:
         Returns:
         * MarginDistribution with normalized PMF
         '''
-        ## 1. create base distribution (clamps spread to 0.5 grid) ##
+        ## 1. create base distribution ##
         base = BaseDistribution(spread, win_prob, beta=self.beta)
         ## 2. create normalizer ##
         normalizer = Normalizer(base, self.tie_prob)
@@ -85,8 +85,10 @@ class MarginDistributionModel:
         ## 6. normalize ##
         pmf = normalizer.normalize(raw_pmf)
         ## 7. return ##
+        ## convert continuous spread to grid spread for distribution ##
+        grid_spread = round(base.spread * 2) / 2
         return MarginDistribution(
-            spread=base.spread,
+            spread=grid_spread,
             win_prob=win_prob,
             tie_prob=self.tie_prob,
             pmf=pmf,
