@@ -126,7 +126,7 @@ credibility = min(1, exp_eff_hits / threshold)
 ratio = 1 + (raw_ratio - 1) * credibility
 ```
 
-With `threshold=25`, a number needs ~25 expected hits of effective (decay-weighted) exposure before the model reports its full ratio. Low-frequency numbers (like +-30) naturally self-regulate toward ratio=1.0 because they never accumulate enough expected hits to reach full credibility, while high-frequency numbers (like +-3) reach full credibility quickly and report their true ratio.
+With `threshold=11.25`, a number needs 11.25 expected hits of effective (decay-weighted) exposure before the model reports its full ratio. Low-frequency numbers (like +-30) naturally self-regulate toward ratio=1.0 because they may not accumulate enough expected hits to reach full credibility, while high-frequency numbers (like +-3) reach full credibility quickly and report their true ratio.
 
 A ratio > 1.0 means the number occurs more often than the baseline predicts (key number). A ratio < 1.0 means less (dead zone). A ratio of exactly 1.0 means no adjustment.
 
@@ -151,11 +151,11 @@ This approach naturally handles three things that required separate mechanisms i
 
 ### Exponential decay
 
-Older seasons are exponentially decayed (`forgetting_rate=0.087` per season). This means the tracker naturally adapts to structural changes (like the PAT rule change) without requiring a hard reset. The effective sample size stabilizes around `n_games / forgetting_rate ~ 3,200` games, weighting recent data more heavily. The low forgetting rate reflects that season-to-season noise exceeds real drift for most numbers - longer memory slightly improves accuracy.
+Older seasons are exponentially decayed (`forgetting_rate=0.0325` per season). This means the tracker naturally adapts to structural changes (like the PAT rule change) without requiring a hard reset. At roughly 272 games per season, the effective sample size stabilizes around `n_games / forgetting_rate ~ 8,400` games. The low forgetting rate reflects that season-to-season noise exceeds real drift for most numbers, so longer memory slightly improves accuracy.
 
 ### Prior initialization
 
-On first update, the tracker is seeded with `initial_prior_size=52` pseudo-games at the baseline rate. This creates a balanced prior (ratio = 1.0, zero excess) with enough weight to prevent the model from overreacting to the first season of data. The prior is small enough that it decays away within a few seasons.
+On first update, the tracker is seeded with `initial_prior_size=61` pseudo-games at the baseline rate. This creates a balanced prior (ratio = 1.0, zero excess) with enough weight to prevent the model from overreacting to the first season of data. The prior is small enough that it decays away within a few seasons.
 
 ## Pipeline position
 
@@ -201,16 +201,16 @@ Credibility-weighted ratio tracker for a single margin integer.
 
 | Parameter            | Value | Role                                                      |
 | -------------------- | ----- | --------------------------------------------------------- |
-| `forgetting_rate`    | 0.087 | Exponential decay rate per season for all state variables |
-| `threshold`          | 25    | Expected-hit count at which credibility reaches 1.0       |
-| `initial_prior_size` | 52    | Pseudo-games seeded on first update (balanced prior)      |
+| `forgetting_rate`    | 0.0325 | Exponential decay rate per season for all state variables |
+| `threshold`          | 11.25  | Expected-hit count at which credibility reaches 1.0       |
+| `initial_prior_size` | 61     | Pseudo-games seeded on first update (balanced prior)       |
 
 
 ### How parameters were determined
 
-Learning parameters (`forgetting_rate`, `threshold`, `initial_prior_size`) were optimized on season-aggregate out-of-sample RMSE via Nelder-Mead with 5 random restarts. The objective trains the model across all seasons with candidate params and measures how well each season's pre-update ratio predictions match actual excess. RMSE moved only marginally during optimization (`1.011` to `1.006` pp) — the architecture does the work, not the parameter values.
+Learning parameters (`forgetting_rate`, `threshold`, `initial_prior_size`) are selected through bounded evaluation of mean per-season margin-distribution SAE, aggregate OOS SAE, and close/mid/tail bias. A parameter set is acceptable only when the distribution-level bias gates and the KeyModel's OOS excess-error gates pass. This keeps the credibility model calibrated at individual margin numbers without trading regional distribution accuracy for a lower SAE objective.
 
-**When to re-optimize**: These parameters are insensitive — re-optimization is unlikely to yield meaningful improvement unless there is a structural change to the game (rule change, schedule expansion).
+**When to re-optimize**: Re-run the search after a structural change to the game or a change to how the final margin PMF is constructed or normalized.
 
 ## Training
 

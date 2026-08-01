@@ -1,6 +1,31 @@
 # Changelog
 
 
+## [0.2.2] - 2026-08-01
+
+### Fixed
+
+- **`Normalizer` spread bisection** — feasible integer and half-integer posted spreads now enforce `P(margin < spread) = P(margin > spread)` exactly while preserving win probability, tie probability, and integer push mass. At `±1`, the push bin adjusts because the between-zero-and-spread region is empty. At `0` and `±0.5`, win and tie probabilities retain precedence because the discrete support makes all constraints incompatible.
+- **Equal-line expected value** — exact bisection prevents positive expected value at the model's own feasible posted line from being created by unequal cover and loss mass.
+
+### Changed
+
+- **KeyModel hyperparameters** — `forgetting_rate` `0.04` → `0.0325`, `threshold` `15` → `11.25`, and `initial_prior_size` `52` → `61`; margin-distribution `beta` remains `1.24`.
+- **Retrained KeyModel configs** — regenerated seasonal snapshots through the 2026 config using data through 2025.
+
+### Validation snapshot
+
+| Component | Key metric | Value |
+|-----------|------------|------:|
+| Margin distribution | OOS SAE | 11.2% (487 / 4,363 games) |
+| Margin distribution | Close bias | +0.5% |
+| Margin distribution | Mid bias | +1.3% |
+| Margin distribution | Tail bias | −5.3% |
+| KeyModel | OOS RMSE excess | 1.1243 pp |
+| KeyModel | OOS MAE excess | 0.7836 pp |
+| KeyModel | Model / baseline RMSE | 0.5391 |
+| Normalizer | Max feasible-line bisection error | 2.22e−16 |
+
 ## [0.2.1] - 2026-07-07
 
 ### Fixed

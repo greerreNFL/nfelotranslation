@@ -30,9 +30,9 @@ The margin space -75..+75 is divided by two landmarks: **zero** (the win/loss bo
 |--------|-----------|------|
 | **A** | The entire side of zero that does NOT contain the spread | Scaled to its side's total target in one block |
 | **T** | Margin 0 | Tie bin — always exactly tie_prob |
-| **B** | Margins between zero and the spread (exclusive of both) | Sub-region scaled proportionally to continuous CDF |
-| **C** | The spread bin itself | Integer spreads only — scaled proportionally |
-| **D** | Margins beyond the spread (same side as the spread) | Sub-region scaled proportionally to continuous CDF |
+| **B** | Margins between zero and the spread (exclusive of both) | Sub-region scaled so A + T + B equals D |
+| **C** | The spread bin itself | Integer spreads only — preserves key-model push mass except at ±1 |
+| **D** | Margins beyond the spread (same side as the spread) | Sub-region scaled to half of all non-push mass |
 
 In the language of our constraints:
 - WIN PROB CONSTRAINT: B + C + D = wp
@@ -50,15 +50,19 @@ Target:    1-wp-tp    tp    ←—— these three sum to wp ——→   (WIN PRO
 Target:    ←——      these       ——→      =    ←— this  —→   (SPREAD BISECTION CONSTRAINT)
 ```
 
-A is the loss side (opposite the spread). B/C/D are the win side, sub-divided around the spread. The C bin (margin = s) is special: its value passes through from the dirty PMF, so the key model's adjustment at the push number is preserved. B and D collectively absorb the remainder of the win-side mass:
+A is the loss side (opposite the spread). B/C/D are the win side, sub-divided around the spread. For integer spreads of at least 2, the C bin (margin = s) passes through from the dirty PMF so the key model's adjustment at the push number is preserved. D receives half of all non-push mass, and B receives the remainder of the win-side target:
 
 ```
 C        = dirty_pmf[s]                     (passed through unchanged)
-B + D    = wp - C
-bd_factor = (wp - C) / (sum_dirty_B + sum_dirty_D)
+D*       = (1 - C) / 2
+B*       = D* - (A + T)
+         = D* - (1 - wp)
+         = wp - 0.5 - C/2
 ```
 
-The same `bd_factor` is applied to every bin in B and every bin in D, which preserves the dirty PMF's internal shape inside each sub-region and the dirty B/D ratio between them.
+B and D are scaled independently to these totals. Each region's internal dirty-PMF shape is preserved, but their relative totals change as required to enforce bisection.
+
+At `s = 1`, B is empty. C cannot remain fixed while both constraints hold, so `D* = 1 - wp` and `C* = 2wp - 1`.
 
 **Positive half-integer spread** (e.g., s = 7.5):
 
@@ -68,14 +72,14 @@ Margins: -75..-1    0     1..floor(s)    ceil(s)..75
 Target:  1-wp-tp    tp    ←— sum to wp —→
 ```
 
-No C region — no integer bin sits on the spread. B and D use the spread value itself as the boundary, and each sub-region's target is proportional to the continuous CDF slice it covers:
+No C region — no integer bin sits on the spread. For spreads of at least 1.5, exact bisection fixes D at half the distribution, and B receives the remainder of the win-side target:
 
 ```
-target_B = wp × [CDF(s) - CDF(0.5)] / SF(0.5)
-target_D = wp × SF(s) / SF(0.5)
+target_B = wp - 0.5
+target_D = 0.5
 ```
 
-The denominator `SF(0.5)` is the continuous probability of the entire win side (margin > 0.5), ensuring B + D = wp.
+At `s = 0.5`, no B or C region exists: D is the entire win side. Exact bisection is therefore incompatible with preserving a mapped `wp != 0.5`; win probability takes precedence.
 
 **Negative integer spread** (e.g., s = -7):
 
@@ -85,15 +89,19 @@ Margins: -75..s-1   s     s+1..-1    0     1..75
 Target:  ←— these three sum to 1-wp-tp —→  tp    wp
 ```
 
-A is the win side. D/C/B are the loss side, sub-divided around the spread. As in the positive integer case, the C bin (margin = s) passes through from the dirty PMF, and B + D jointly absorb the remainder of the loss-side mass:
+A is the win side. D/C/B are the loss side, sub-divided around the spread. For integer spreads of at most -2, C passes through from the dirty PMF. D receives half of all non-push mass, and B receives the remainder of the loss-side target:
 
 ```
 C        = dirty_pmf[s]                     (passed through unchanged)
-B + D    = loss - C
-bd_factor = (loss - C) / (sum_dirty_B + sum_dirty_D)
+D*       = (1 - C) / 2
+B*       = D* - (A + T)
+         = D* - (wp + tp)
+         = 0.5 - wp - tp - C/2
 ```
 
-Where `loss = 1 - wp - tp`. The same `bd_factor` scales every bin in D and every bin in B.
+Where `loss = 1 - wp - tp`. B and D are scaled independently while preserving each region's internal shape.
+
+At `s = -1`, B is empty, so `D* = wp + tp` and `C* = loss - D*`.
 
 **Negative half-integer spread** (e.g., s = -7.5):
 
@@ -103,14 +111,14 @@ Margins: -75..floor(s)  ceil(s)..-1 0     1..75
 Target:  ←— sum to 1-wp-tp —→      tp    wp
 ```
 
-No C region. B and D use the spread value itself as the boundary, with sub-region targets proportional to the continuous CDF slice:
+No C region. For spreads of at most -1.5, exact bisection fixes D at half the distribution, and B receives the remainder of the loss-side target:
 
 ```
-target_D = loss × CDF(s) / CDF(-0.5)
-target_B = loss × [CDF(-0.5) - CDF(s)] / CDF(-0.5)
+target_D = 0.5
+target_B = loss - 0.5
 ```
 
-The denominator `CDF(-0.5)` is the continuous probability of the entire loss side, ensuring D + B = loss.
+At `s = -0.5`, no B or C region exists. The loss target takes precedence over exact bisection.
 
 **Spread = 0** (pick-em):
 
@@ -122,14 +130,13 @@ Target:  1-wp-tp    tp    wp
 
 The spread sits on the tie bin. No B or C — only the two flanking regions.
 
+Exact bisection at zero would require `wp = (1 - tie_prob) / 2`. When the mapped win probability differs, win and tie probability take precedence.
+
 ### Why sub-divide around the spread
 
 Without sub-division, a single scale factor is applied to the entire win (or loss) side. This preserves the total win probability but distorts the shape around the spread. A margin 2 points below the spread and a margin 20 points beyond the spread get the same multiplicative adjustment — which is wrong, because the continuous normal assigns very different density to those regions.
 
-The B/C/D sub-division preserves the continuous CDF's proportions within each side. This means:
-- Margins near the spread keep approximately the right density
-- Margins far from the spread keep approximately the right density
-- The spread remains the approximate bisection point of the discrete PMF
+Independent scaling preserves the dirty PMF's proportions within B and within D while changing their relative totals. This keeps each sub-region's shape and makes the spread an exact bisection point wherever the discrete support permits all constraints to hold.
 
 ### Symmetry limitation
 

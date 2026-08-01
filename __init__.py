@@ -25,7 +25,7 @@ if _pkg_root not in _sys.path:
 
 ## ==================== Re-export Public API ==================== ##
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 ## calibration ##
 from nfelotranslation.Calibration import PlattParams, CalibrationResult, Recalibrator

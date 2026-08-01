@@ -63,16 +63,17 @@ Inside the feasible window, per-season SAE is relatively flat — the absolute S
 
 ## Current shipped value: beta = 1.24
 
-Selected to pass the regional bias gates with headroom under the refactored pipeline. At `beta=1.24`, with the other three hyperparams at their shipped values (`forgetting_rate=0.04`, `threshold=15`, `initial_prior_size=52`):
+Selected to pass the regional bias gates with headroom under the refactored pipeline. At `beta=1.24`, with the other three hyperparams at their shipped values (`forgetting_rate=0.0325`, `threshold=11.25`, `initial_prior_size=61`):
 
-* per-season-averaged SAE: ~113 games
-* close-bias: +0.3% (4.7pp headroom against the ±5% threshold)
-* tail-bias: −5.5% (4.5pp headroom against the ±10% threshold)
-* mid-bias: +1.5% (no threshold)
+* per-season-averaged SAE: 112.42 games
+* aggregate OOS SAE: 11.16%
+* close-bias: +0.5% (4.5pp headroom against the ±5% threshold)
+* tail-bias: −5.3% (4.7pp headroom against the ±10% threshold)
+* mid-bias: +1.3% (no threshold)
 
 The headroom matters as much as the SAE number. Higher `beta` values can improve SAE but push tail-bias toward the −10% gate; `beta=1.24` is the value that clears the validator on the current training pipeline (`pipeline_id` `628c245d`).
 
-The other three hyperparams were re-tuned under constrained search (`threshold=15`, `initial_prior_size=52` fixed; `forgetting_rate` optimized). Prior shipped values were `forgetting_rate=0.087`, `threshold=25`, `initial_prior_size=52`.
+The four shipped hyperparameters are evaluated jointly against mean per-season SAE, aggregate OOS SAE, and close/mid/tail bias. The current values are `forgetting_rate=0.0325`, `threshold=11.25`, `initial_prior_size=61`, and `beta=1.24`. They produce mean per-season SAE of `112.42`, aggregate OOS SAE of `11.16%`, and absolute regional biases comfortably inside their validation gates. Requiring acceptable regional bias prevents lower SAE from being selected at the expense of distribution calibration.
 
 ## Train-time vs inference-time beta — calibrated, not a bug
 

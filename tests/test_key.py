@@ -20,7 +20,7 @@ DEFAULT_PARAMS = KEY_MODEL_PARAMS
 _FR = float(DEFAULT_PARAMS['forgetting_rate'])
 _DECAY = 1.0 - _FR           ## per-season decay factor
 _PRIOR_N = int(DEFAULT_PARAMS['initial_prior_size'])
-_THR = int(DEFAULT_PARAMS['threshold'])
+_THR = float(DEFAULT_PARAMS['threshold'])
 
 
 ## ==================== NumberOutcomeRecord ==================== ##

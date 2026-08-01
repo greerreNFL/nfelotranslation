@@ -12,7 +12,8 @@
 ##   9. Symmetry: predict(s, wp) mirrors predict(-s, 1-wp)
 ##  10. Normalizer: discretize returns valid PMF
 ##  11. Normalizer: normalize preserves region targets
-##  12. Region probs: tie_prob_from_pmf and loss_prob_from_pmf
+##  12. Spread bisection and near-zero exception policy
+##  13. Region probs: tie_prob_from_pmf and loss_prob_from_pmf
 ##
 import pytest
 import numpy as np
@@ -312,10 +313,10 @@ class TestSymmetry:
         result_neg = model.predict(-spread, 1.0 - wp)
         ## pmf at margin k for (s, wp) should ≈ pmf at margin -k for (-s, 1-wp) ##
         pmf_flipped = result_neg.pmf[::-1]
-        ## residual asymmetry is ~2e-4 — a small integer-boundary artifact from
-        ## the normalizer's region scaling (maxes out at margin=±1, NOT at 0
-        ## despite the tie bin). 5e-4 leaves 2.5× headroom over the empirical max. ##
-        assert np.allclose(result_pos.pmf, pmf_flipped, atol=5e-4), (
+        ## Nonzero tie probability prevents an exact mirror because the paired
+        ## inputs use 1-wp while loss mass is 1-wp-tp.  The residual remains
+        ## bounded by O(tie_prob). ##
+        assert np.allclose(result_pos.pmf, pmf_flipped, atol=TIE_PROB * 0.55), (
             f'Symmetry violated at spread={spread}: '
             f'max diff={np.max(np.abs(result_pos.pmf - pmf_flipped)):.2e}'
         )
@@ -402,8 +403,85 @@ class TestNormalizerNormalize:
         )
 
 
+# ============================================================
+# PROPERTY 12: spread bisection
+# ============================================================
+
+class TestSpreadBisection:
+    '''Feasible posted spreads should exactly bisect the discrete PMF.'''
+
+    CASES = [
+        (step / 2, 0.5 + 0.03 * (step / 2))
+        for step in range(-20, 21)
+        if abs(step) >= 2
+    ]
+
+    @pytest.mark.parametrize('spread,wp', CASES)
+    def test_exact_bisection(self, model, spread, wp):
+        result = model.predict(spread, wp)
+        margins = np.arange(-75, 76)
+        below = float(result.pmf[margins < spread].sum())
+        above = float(result.pmf[margins > spread].sum())
+        assert abs(above - below) < 1e-10, (
+            f'Bisection failed at spread={spread}: above={above:.12f}, below={below:.12f}'
+        )
+
+    @pytest.mark.parametrize('spread,wp', [(7.0, 0.75), (-7.0, 0.25)])
+    def test_integer_push_preserved(self, spread, wp):
+        base = BaseDistribution(spread, wp)
+        normalizer = Normalizer(base)
+        dirty = normalizer.discretize()
+        idx = int(spread) + 75
+        dirty[idx] += 0.01
+        push = dirty[idx]
+        pmf = normalizer.normalize(dirty)
+        assert abs(pmf[idx] - push) < 1e-12
+
+    @pytest.mark.parametrize('spread,wp', [(1.0, 0.54), (-1.0, 0.46)])
+    def test_one_point_adjusts_push(self, model, spread, wp):
+        result = model.predict(spread, wp)
+        margins = np.arange(-75, 76)
+        below = float(result.pmf[margins < spread].sum())
+        above = float(result.pmf[margins > spread].sum())
+        assert abs(above - below) < 1e-10
+        if spread > 0:
+            expected_push = 2.0 * wp - 1.0
+        else:
+            expected_push = 1.0 - 2.0 * wp - 2.0 * result.tie_prob
+        assert abs(result.push_prob(spread) - expected_push) < 1e-10
+
+    @pytest.mark.parametrize('spread,wp', [
+        (0.0, 0.50),
+        (0.5, 0.52),
+        (-0.5, 0.48),
+    ])
+    def test_near_zero_preserves_side_targets(self, model, spread, wp):
+        result = model.predict(spread, wp)
+        assert abs(result.win_prob_from_pmf() - wp) < WP_TOL
+        assert abs(result.tie_prob_from_pmf() - result.tie_prob) < WP_TOL
+        assert abs(result.loss_prob_from_pmf() - (1.0 - wp - result.tie_prob)) < WP_TOL
+        margins = np.arange(-75, 76)
+        below = float(result.pmf[margins < spread].sum())
+        above = float(result.pmf[margins > spread].sum())
+        if spread > 0:
+            expected_error = 2.0 * wp - 1.0
+        elif spread < 0:
+            expected_error = 2.0 * (wp + result.tie_prob) - 1.0
+        else:
+            expected_error = 2.0 * wp + result.tie_prob - 1.0
+        assert abs((above - below) - expected_error) < 1e-10
+
+    def test_infeasible_target_raises(self):
+        base = BaseDistribution(2.0, 0.51)
+        normalizer = Normalizer(base)
+        dirty = normalizer.discretize()
+        dirty[77] = 0.20
+        with pytest.raises(ValueError, match='B target is negative at spread=2.0'):
+            normalizer.normalize(dirty)
+
+
 ## ============================================================
-## PROPERTY 12: region probs from PMF
+## PROPERTY 13: region probs from PMF
 ## ============================================================
 
 class TestRegionProbs:

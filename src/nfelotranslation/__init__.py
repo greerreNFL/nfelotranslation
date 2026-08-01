@@ -20,7 +20,7 @@ Model refitting and training pipelines live in the repository ``training/``
 package (not installed from PyPI by default).
 '''
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 
 ## calibration ##
 from .Calibration import PlattParams, CalibrationResult, Recalibrator
